@@ -7,6 +7,8 @@ export interface RawExperiment {
     id: string;
     meta: string | null;
     world: string;
+    /** events.jsonl（環境が起こした変化。補充など）。古いログには無い */
+    events: string | null;
     /** uid -> player_{uid}.jsonl の中身 */
     players: Record<string, string>;
 }
@@ -47,12 +49,13 @@ export async function readExperiment(dataDir: string, id: string): Promise<RawEx
     const world = await readOptional(join(dir, 'world.jsonl'));
     if (world === null) return null;
     const meta = await readOptional(join(dir, 'meta.json'));
+    const events = await readOptional(join(dir, 'events.jsonl'));
     const players: Record<string, string> = {};
     for (const name of await readdir(dir)) {
         const m = name.match(PLAYER_FILE);
         if (m) players[m[1]] = await readFile(join(dir, name), 'utf8');
     }
-    return { id, meta, world, players };
+    return { id, meta, world, events, players };
 }
 
 function countLines(text: string): number {

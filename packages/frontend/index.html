@@ -92,6 +92,39 @@
       </div>
     </section>
 
+    <section id="distSec" hidden>
+      <div class="sec-head">
+        <h2>目標分布との比較</h2>
+        <span class="muted small mono" id="distRule"></span>
+      </div>
+      <div id="distNone" class="muted small" hidden></div>
+      <div id="distBody" class="dist">
+        <div class="chart">
+          <div class="ctitle" id="distNowTitle">—</div>
+          <div id="distNow"></div>
+          <div class="tl-legend">
+            <span><i class="d-in"></i>選択中ティックの割合</span>
+            <span><i class="d-out"></i>偶然の範囲の外</span>
+            <span><i class="d-target" style="height:2px"></i>目標 p*</span>
+            <span><i class="d-band"></i>偶然の範囲（2項分布 B(M, p*) の ±2σ）</span>
+          </div>
+        </div>
+        <h3>個数の分布 <span class="muted" id="histRange"></span></h3>
+        <div class="pickbar" id="pickBar"></div>
+        <div class="chart"><div id="distHist"></div></div>
+        <div class="tl-legend">
+          <span>薄い棒：範囲内でその個数だったティックの割合</span>
+          <span>線：目標どおりにばらまいたときの 2項分布 B(M, p*)</span>
+          <span class="muted">隣り合うティックのマップはほとんど同じなので、棒の山は線より細く・ずれて見えやすい</span>
+        </div>
+        <h3>補充されたブロック <span class="muted" id="refillRange"></span></h3>
+        <div class="chart"><div id="refillIds"></div></div>
+        <div class="tl-legend" id="refillIdsLegend"></div>
+      </div>
+      <h3>補充の集計 <span class="muted" id="tRefillRange"></span></h3>
+      <div class="tblwrap"><table id="tRefill" class="kv"></table></div>
+    </section>
+
     <details class="help">
       <summary>操作と定義</summary>
       <dl>
@@ -107,6 +140,10 @@
         <dd>行動の前提条件（手ぶらで eat しない、正面が空きで get しない など）を満たしたかどうか。toyWorld の action.ts の分岐から判定。同じティックに他のプレイヤーが先に動いた場合はずれることがある。</dd>
         <dt>獲得エネルギー</dt>
         <dd>有効な eat で消費したブロックの、エネルギー表の値の合計。</dd>
+        <dt>目標分布との比較</dt>
+        <dd>refill（無ければ initMap）のルールが target に使う分布（meta.json の ruleFile.artifacts）とマップの割合を比べる。L1 は ID ごとの割合の差の絶対値の和。偶然の目安は、目標どおりの確率で全マスにばらまいたときに 95% がこれ以下になる L1（モンテカルロ）。偶然の範囲は 2項分布 B(M, p*) の ±2σ。toyWorld の rule-editor の refill プレビューと同じ定義。</dd>
+        <dt>補充</dt>
+        <dd>events.jsonl の kind = refill。そのティックで選ばれた行動（get / fusion）で起きたものとして、集計の範囲で数える。「ルールの期待」は、そのティックのマップから mixedRefill の確率を計算し直して足したもの。同じティックの他の行動（put など）の影響は追えないので推定。「補充以外のマスの変化」は行動の前後のマップで変わったマスのうち補充でないもの（put、手持ちとの交換など）。</dd>
         <dt>状況</dt>
         <dd>行動を選んだ時点の正面1マス（視界の先頭）の中身と、手持ちの有無。</dd>
       </dl>
