@@ -14,6 +14,7 @@ import {
     zoomBy,
     zoomReset,
 } from './views/charts.js';
+import { bindDistEvents, buildDist, renderDistNow, renderDistRange } from './views/dist.js';
 import { bindMapEvents, buildMap, renderMap } from './views/map.js';
 import { renderExperimentSelect, renderMeta, showError } from './views/meta.js';
 import { bindPlayerEvents, renderPlayers } from './views/players.js';
@@ -29,6 +30,7 @@ function seek(t: number): void {
     renderMap();
     renderPlayers();
     renderCursors();
+    renderDistNow();
     // 時系列を拡大しているときは、カーソルが範囲の外に出たら追いかける
     ensureVisible(S.t);
 }
@@ -100,13 +102,18 @@ async function loadStats(): Promise<void> {
     statsAbort = ctrl;
     renderRangeInputs();
     $('statsGrid').classList.add('loading');
+    $('distSec').classList.add('loading');
     try {
         S.stats = await api.stats(E.id, Math.min(S.from, S.to), Math.max(S.from, S.to), ctrl.signal);
         renderStats();
+        renderDistRange();
     } catch (e) {
         if ((e as Error).name !== 'AbortError') showError(`集計を取得できませんでした: ${(e as Error).message}`);
     } finally {
-        if (statsAbort === ctrl) $('statsGrid').classList.remove('loading');
+        if (statsAbort === ctrl) {
+            $('statsGrid').classList.remove('loading');
+            $('distSec').classList.remove('loading');
+        }
     }
 }
 
@@ -174,6 +181,7 @@ async function openExperiment(id: string, keepView = false): Promise<void> {
         buildLegend();
         buildCharts(pick);
         buildContextSelect();
+        buildDist();
         seek(S.t);
         await loadStats();
     } catch (e) {
@@ -215,6 +223,7 @@ function bindEvents(): void {
     bindMapEvents(selectPlayer);
     bindPlayerEvents(selectPlayer);
     bindChartEvents();
+    bindDistEvents();
 
     $('legend').addEventListener('click', (e) => {
         const b = (e.target as Element).closest<HTMLElement>('[data-p]');
@@ -288,6 +297,8 @@ function bindEvents(): void {
                 lastW = w;
                 buildCharts(pick);
                 renderCursors();
+                renderDistNow();
+                renderDistRange();
             }
         }, 120);
     }).observe($('charts'));

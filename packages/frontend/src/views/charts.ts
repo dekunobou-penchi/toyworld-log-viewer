@@ -263,31 +263,79 @@ function drawCharts(): void {
         div.innerHTML = `<div class="ctitle">${esc(def.title)}${note}</div>${s}`;
         host.append(div);
 
-        const svg = div.querySelector('svg')!;
-        const hl = svg.querySelector<SVGLineElement>('.hoverline')!;
-        const dots = svg.querySelector<SVGGElement>('.hoverdots')!;
-        cursors.push({ line: svg.querySelector<SVGLineElement>('.cursor')!, sx });
-        attachHover(
-            svg, sx,
-            (t, px) => {
-                hl.setAttribute('x1', String(px));
-                hl.setAttribute('x2', String(px));
-                hl.setAttribute('visibility', 'visible');
-                let dh = '';
-                const rows = visible.map((P) => {
-                    const v = def.get(P)[t];
-                    if (v != null) dh += `<circle cx="${sx.x(t)}" cy="${y(v)}" r="4" fill="${playerColor(P.idx)}" stroke="var(--bg)" stroke-width="2"/>`;
-                    return tipRow(P, v == null ? '—' : `${v}${P.dead[t] && def.deaths ? '（死亡）' : ''}`);
-                });
-                dots.innerHTML = dh;
-                return `<div class="h">tick ${t + 1} · ${esc(def.title)}</div>${rows.join('')}`;
-            },
-            () => {
-                hl.setAttribute('visibility', 'hidden');
-                dots.innerHTML = '';
-            },
-        );
+        hookChart(div, sx, (t) => {
+            let dh = '';
+            const rows = visible.map((P) => {
+                const v = def.get(P)[t];
+                if (v != null) dh += `<circle cx="${sx.x(t)}" cy="${y(v)}" r="4" fill="${playerColor(P.idx)}" stroke="var(--bg)" stroke-width="2"/>`;
+                return tipRow(P, v == null ? '—' : `${v}${P.dead[t] && def.deaths ? '（死亡）' : ''}`);
+            });
+            return { dots: dh, html: `<div class="h">tick ${t + 1} · ${esc(def.title)}</div>${rows.join('')}` };
+        });
     }
+    if (E.dist) drawL1Chart(host, sx, t0, t1);
+}
+
+/** ホバーで縦線・点・ツールチップを出す。カーソル線を登録する */
+function hookChart(div: HTMLElement, sx: XScale, onMove: (t: number) => { dots: string; html: string }): void {
+    const svg = div.querySelector('svg')!;
+    const hl = svg.querySelector<SVGLineElement>('.hoverline')!;
+    const dots = svg.querySelector<SVGGElement>('.hoverdots')!;
+    cursors.push({ line: svg.querySelector<SVGLineElement>('.cursor')!, sx });
+    attachHover(
+        svg, sx,
+        (t, px) => {
+            hl.setAttribute('x1', String(px));
+            hl.setAttribute('x2', String(px));
+            hl.setAttribute('visibility', 'visible');
+            const r = onMove(t);
+            dots.innerHTML = r.dots;
+            return r.html;
+        },
+        () => {
+            hl.setAttribute('visibility', 'hidden');
+            dots.innerHTML = '';
+        },
+    );
+}
+
+/** 目標とのズレ（L1）。実験全体で1本。偶然でも出る L1 の目安を点線で重ねる */
+function drawL1Chart(host: HTMLElement, sx: XScale, t0: number, t1: number): void {
+    const D = requireExp().dist!;
+    const h = CHART_H;
+    let max = D.l1Chance;
+    for (const v of D.l1) if (v > max) max = v;
+    const yt = niceTicks(0, max * 1.04, 4);
+    const ymax = Math.max(yt[yt.length - 1] ?? max, max);
+    const y = (v: number) => M.t + (1 - v / ymax) * (h - M.t - M.b);
+    let s = frame(h, '目標とのズレ（L1）の推移') + clip('clip-l1', M.t, h);
+    s += `<g class="grid">${yt.map((v) => `<line x1="${M.l}" x2="${width - M.r}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}</g>`;
+    s += `<g class="axis">${yt.map((v) => `<text x="${M.l - 6}" y="${y(v)}" text-anchor="end" dominant-baseline="central">${v}</text>`).join('')}</g>`;
+    s += xAxis(sx, h);
+    s += `<line x1="${M.l}" x2="${width - M.r}" y1="${y(D.l1Chance)}" y2="${y(D.l1Chance)}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+    let d = '';
+    for (let t = t0; t <= t1; t++) d += `${t === t0 ? 'M' : 'L'}${sx.x(t).toFixed(1)},${y(D.l1[t]).toFixed(1)}`;
+    s += `<g clip-path="url(#clip-l1)"><path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>`;
+    if (sx.iw / (sx.b - sx.a) >= 8) {
+        for (let t = t0; t <= t1; t++) s += `<circle cx="${sx.x(t)}" cy="${y(D.l1[t])}" r="2" fill="var(--ink)"/>`;
+    }
+    s += '</g>' + overlays(h, M.t) + '</svg>';
+    const div = document.createElement('div');
+    div.className = 'chart';
+    div.innerHTML =
+        `<div class="ctitle">目標とのズレ（L1） <span class="muted">— 実線 L1　<span style="color:var(--accent)">┄ 偶然でも出る L1 の目安（95%）${D.l1Chance.toFixed(3)}</span></span></div>${s}`;
+    host.append(div);
+    hookChart(div, sx, (t) => {
+        const v = D.l1[t];
+        const over = v > D.l1Chance;
+        return {
+            dots: `<circle cx="${sx.x(t)}" cy="${y(v)}" r="4" fill="var(--ink)" stroke="var(--bg)" stroke-width="2"/>`,
+            html:
+                `<div class="h">tick ${t + 1} · 目標とのズレ</div>` +
+                `<div class="r"><span class="n">L1</span><span class="v">${v.toFixed(3)}${over ? '（目安超え）' : ''}</span></div>` +
+                `<div class="r"><span class="n">±2σ の外の ID</span><span class="v">${D.outside[t]} / ${D.N}</span></div>`,
+        };
+    });
 }
 
 function drawTimeline(): void {

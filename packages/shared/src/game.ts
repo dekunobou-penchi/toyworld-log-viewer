@@ -37,12 +37,45 @@ export interface GameParams {
     transition: 'person' | 'agent';
 }
 
+/** meta.json の runtime の1項目（フックに差したルールとそのパラメータ） */
+export interface RuleSelection {
+    rule: string;
+    params?: Record<string, unknown>;
+}
+
+/** meta.json の ruleFile（ビューアが使うところだけ） */
+export interface RuleFileMeta {
+    constants?: { N?: number; nx?: number; ny?: number; seed?: number };
+    /** 生成ルールで作った表や分布。baked が実際の値 */
+    artifacts?: Record<string, { baked?: unknown } | undefined>;
+}
+
 /** meta.json */
 export interface MetaFile {
     experimentName?: string | null;
     params?: GameParams | null;
     energyTable?: number[] | null;
     fusionTable?: number[][] | null;
+    ruleFile?: RuleFileMeta | null;
+    runtime?: Partial<Record<string, RuleSelection>> | null;
+}
+
+/**
+ * events.jsonl の1行。tick は toyWorld の world.tick（行動を適用したときの値、1 始まり）。
+ * world.jsonl の行 k（0 始まり）の行動で起きたことは tick = k + 1 で記録される。
+ */
+export interface EventLine {
+    tick: number;
+    kind: string;
+    cause?: string;
+    x?: number;
+    y?: number;
+    /** 補充されたブロック */
+    block?: number;
+    /** 取られた（消えた）ブロック */
+    taken?: number;
+    by?: string;
+    [key: string]: unknown;
 }
 
 /** world.jsonl の players 要素（サーバの Player 型そのもの） */

@@ -10,6 +10,7 @@ import {
     type PlayerSummary,
     type StatsResponse,
 } from '@viewer/shared';
+import { computeRefillStats } from './distribution.js';
 
 function zeroActions<V>(make: () => V): Record<Action, V> {
     return Object.fromEntries(ACTIONS.map((a) => [a, make()])) as Record<Action, V>;
@@ -77,5 +78,6 @@ export function computeStats(exp: Experiment, fromIn: number, toIn: number): Sta
         context.push({ uid: P.uid, rows });
     }
 
-    return { from, to, summary, actions, context };
+    const refill = computeRefillStats(exp.maps, exp.refills, exp.dist, exp.blockMax, from, to);
+    return { from, to, summary, actions, context, refill };
 }

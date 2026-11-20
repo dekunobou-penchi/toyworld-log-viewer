@@ -44,6 +44,20 @@ LP・保持ブロック・Ltime の3つのグラフと行動タイムライン�
 
 再生やキー操作で現在のティックが表示範囲の外に出ると、範囲が自動でずれて追いかける。
 
+### 目標分布との比較
+
+refill（無ければ initMap）のルールが目標分布（`target`）を使う実験では、toyWorld の rule-editor の refill プレビューと同じ見方で、実際のマップが目標にどれだけ近いかを表示する。目標分布は `meta.json` の `ruleFile.artifacts` から、補充の記録は `events.jsonl` から読む。
+
+| 表示 | 範囲 | 内容 |
+|---|---|---|
+| 時系列「目標とのズレ（L1）」 | 全期間 | ティックごとの L1 と、偶然でも出る L1 の目安（95%、点線） |
+| 選択中ティックの分布 | 再生中のティック | ID ごとの割合（棒）、目標（黒線）、2項分布の ±2σ（帯）。帯の外は橙 |
+| 個数の分布 | 集計の範囲 | 選んだ ID（5 個まで）の個数のヒストグラムと 2項分布 B(M, p*) |
+| 補充されたブロック | 集計の範囲 | ID ごとの補充回数、目標どおりの期待 n·p*、mixedRefill の確率をそのときのマップから計算し直した期待（推定） |
+| 補充の集計 | 集計の範囲 | 補充回数（get / fusion）、同じ ID が出た割合、補充以外のマスの変化、L1 の平均・最大、目安を超えたティックの割合 |
+
+目標分布を使わないルール（`randomRefill` など）の実験では、補充の集計だけを出す。`events.jsonl` が無い古いログでは補充の回数は出ない。
+
 実験中のログを見るときは「再読み込み」を押すと追記分が反映される（サーバは `world.jsonl` の更新時刻とサイズが変わったら読み直す）。URL の `#exp_…` で実験を直接開ける。
 
 ## API
@@ -51,8 +65,8 @@ LP・保持ブロック・Ltime の3つのグラフと行動タイムライン�
 | メソッド | パス | 返すもの |
 |---|---|---|
 | GET | `/api/experiments` | 実験の一覧（`ExperimentListResponse`） |
-| GET | `/api/experiments/:id` | 組み立て済みの実験（`Experiment`）。全ティックのマップとプレイヤー系列 |
-| GET | `/api/experiments/:id/stats?from=&to=` | ティック範囲の集計（`StatsResponse`）。`from`/`to` は 0 始まり、両端含む |
+| GET | `/api/experiments/:id` | 組み立て済みの実験（`Experiment`）。全ティックのマップとプレイヤー系列、補充の記録、目標分布との比較（`dist`） |
+| GET | `/api/experiments/:id/stats?from=&to=` | ティック範囲の集計（`StatsResponse`）。`from`/`to` は 0 始まり、両端含む。補充と分布の集計は `refill` |
 
 型は `packages/shared/src/api.ts`。レスポンスは gzip 圧縮される。
 
@@ -73,18 +87,20 @@ packages/
 │       ├── build.ts   # ログ → ティックごとの系列、空振り判定
 │       ├── view.ts    # 視界の再計算（toyWorld の view.ts と同じ規則）
 │       ├── stats.ts   # 範囲集計
+│       ├── distribution.ts # 目標分布との比較、補充の集計
 │       └── store.ts   # 組み立て済み実験のキャッシュ
 └── frontend/src/
     ├── main.ts        # 初期化、再生制御、イベント
     ├── api.ts         # API クライアント
     ├── state.ts       # 画面の状態
-    └── views/         # meta / map / players / charts / stats
+    └── views/         # meta / map / players / charts / stats / dist
 ```
 
 ## ログの解釈
 
 - 各ティックの表示は「そのティックで行動を適用する直前の状態」と「そこで選ばれた行動」。toyWorld の `tick.ts` がログを書いてから `applyAction` するため。
 - 死亡 = `Ltime` が 0 になったティック。
+- `events.jsonl` の `tick` は toyWorld の `world.tick`（1 始まり）。`tick = k` の補充は `world.jsonl` の行 k − 1 で選ばれた行動で起き、行 k のマップに現れる。ビューアでは行動のティック（k − 1）に数える。
 - `player_{uid}.jsonl` の k 行目は、そのプレイヤーが `world.jsonl` に最初に現れたティック + k として対応づける。位置が合わない行は、視界をマップから再計算する。
 - **空振り**は、行動の前提条件を満たしていないもの（手ぶらで `eat`、正面が空きで `get` など）。`action.ts` の分岐から判定している。同じティックに他のプレイヤーが先に動いた場合はずれることがあるので、推定値として扱う。
 
