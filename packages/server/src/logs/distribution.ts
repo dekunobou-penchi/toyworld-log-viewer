@@ -150,6 +150,18 @@ export function parseRefills(events: EventLine[], T: number): RefillEvent[] {
     return out;
 }
 
+/** 目標分布との比較ができない理由（できるなら null） */
+export function distributionReason(meta: MetaFile | null): string | null {
+    if (!meta) return 'meta.json が読めないので、目標分布がわかりません。';
+    if (!meta.runtime || !meta.ruleFile) {
+        return 'meta.json に ruleFile / runtime がありません。目標分布と補充ルールが入る前の toyWorld で記録したログです。今の toyWorld で、目標分布を使うルール（refill: mixedRefill など）で実験すると表示されます。';
+    }
+    if (findTarget(meta)) return null;
+    const refill = meta.runtime.refill?.rule ?? '—';
+    const init = meta.runtime.initMap?.rule ?? '—';
+    return `refill（${refill}）も initMap（${init}）も目標分布を使わないルールなので、目標との比較はできません。`;
+}
+
 export function buildDistribution(meta: MetaFile | null, maps: number[][][], nx: number, ny: number): DistributionInfo | null {
     if (!meta) return null;
     const found = findTarget(meta);

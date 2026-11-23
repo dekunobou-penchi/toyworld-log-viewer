@@ -11,7 +11,7 @@ import type {
 } from '@viewer/shared';
 import type { RawExperiment } from './reader.js';
 import { computeView } from './view.js';
-import { buildDistribution, parseRefills } from './distribution.js';
+import { buildDistribution, distributionReason, parseRefills } from './distribution.js';
 
 export class LogFormatError extends Error {}
 
@@ -166,11 +166,12 @@ export function buildExperiment(raw: RawExperiment): Experiment {
     // 補充の記録と目標分布との比較
     const refills = raw.events ? parseRefills(parseLines<EventLine>(raw.events, 'events.jsonl', notes), T) : [];
     const dist = buildDistribution(meta, maps, nx, ny);
+    const distReason = dist ? null : distributionReason(meta);
     if (dist && raw.events === null) notes.push('events.jsonl がないので、補充の回数と内訳は出せません（分布の比較はマップから計算しています）。');
 
     return {
         id: raw.id,
         title: meta?.experimentName ?? raw.id,
-        params, energy, fusion, T, nx, ny, blockMax, maps, players, refills, dist, notes,
+        params, energy, fusion, T, nx, ny, blockMax, maps, players, refills, dist, distReason, notes,
     };
 }

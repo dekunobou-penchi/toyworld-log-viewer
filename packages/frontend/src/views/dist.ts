@@ -69,9 +69,10 @@ function togglePick(k: number): void {
 
 export function buildDist(): void {
     const E = requireExp();
-    const sec = $('distSec');
-    sec.hidden = !E.dist && E.refills.length === 0;
+    // 比較できない実験でもセクションは出し、理由を書く（黙って消えると機能が無いように見えるため）
+    $('distSec').hidden = false;
     $('distBody').hidden = !E.dist;
+    $('refillSummary').hidden = E.refills.length === 0 && !E.dist;
     const D = E.dist;
     if (D) {
         const rule = D.refillRule ? `refill: ${D.refillRule}${D.alpha != null ? `（α = ${D.alpha}）` : ''}` : 'refill: —';
@@ -80,7 +81,8 @@ export function buildDist(): void {
     } else {
         $('distRule').textContent = '';
         $('distNone').hidden = false;
-        $('distNone').textContent = '目標分布を使うルール（mixedRefill など）ではないので、目標との比較は出しません。補充の回数だけ表示します。';
+        const tail = E.refills.length ? ' 補充の集計だけ表示します。' : '';
+        $('distNone').textContent = `目標分布との比較はこの実験では表示できません：${E.distReason ?? '目標分布が見つかりません。'}${tail}`;
     }
 }
 
@@ -149,7 +151,7 @@ let nowCount: number[] = [];
 export function renderDistRange(): void {
     const E = requireExp();
     const st = S.stats?.refill;
-    if (!st || $('distSec').hidden) return;
+    if (!st || $('refillSummary').hidden) return;
     const from = Math.min(S.from, S.to) + 1, to = Math.max(S.from, S.to) + 1;
     for (const id of ['histRange', 'refillRange', 'tRefillRange']) $(id).textContent = `tick ${from}–${to}`;
     renderRefillTable(st, E.dist);
