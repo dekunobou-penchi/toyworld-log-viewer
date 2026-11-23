@@ -30,5 +30,5 @@ app.listen(config.port, () => {
     console.log(`[viewer] data dir: ${config.dataDir}`);
     console.log(`[viewer] api:      http://localhost:${config.port}/api/experiments`);
     if (hasFrontendBuild()) console.log(`[viewer] ui:       http://localhost:${config.port}/`);
-    else console.log('[viewer] フロントエンドは未ビルド。開発時は pnpm dev で Vite（http://localhost:5174）を使う');
+    else console.log('[viewer] フロントエンドは未ビルド。開発時は pnpm dev で Vite（http://localhost:5180、VIEWER_DEV_PORT で変更可）を使う');
 });

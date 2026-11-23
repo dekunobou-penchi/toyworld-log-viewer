@@ -12,9 +12,9 @@ toyWorld の実験ログ（`data/experiments/exp_…/`）を読み込んで、�
 nvm use            # Node 24（22 以上なら動く）
 pnpm install
 
-# 開発: API サーバ (3200) と Vite (5174) を同時に起動
+# 開発: API サーバ (3200) と Vite (5180) を同時に起動
 DATA_DIR=/path/to/toyWorld/data/experiments pnpm dev
-# → http://localhost:5174
+# → http://localhost:5180
 
 # 本番: フロントをビルドして、サーバ1つで配信
 pnpm build
@@ -29,6 +29,7 @@ DATA_DIR=/path/to/toyWorld/data/experiments pnpm start
 | `DATA_DIR` | `./sample-data` | `exp_…` フォルダが並ぶディレクトリ |
 | `PORT` | `3200` | API サーバのポート |
 | `VIEWER_API_PORT` | `3200` | Vite の `/api` プロキシ先（開発時） |
+| `VIEWER_DEV_PORT` | `5180` | 開発用 Vite のポート（使用中なら起動時にエラー） |
 
 ### 時系列の拡大縮小
 
