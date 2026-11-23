@@ -107,6 +107,8 @@ export interface Experiment {
     refills: RefillEvent[];
     /** 目標分布との比較（目標分布を使わない実験は null） */
     dist: DistributionInfo | null;
+    /** dist が null の理由（画面に出す説明） */
+    distReason: string | null;
     /** 読み込み時の注意（壊れた行、視界の再計算など） */
     notes: string[];
 }

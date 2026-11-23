@@ -165,6 +165,7 @@ td.heat .sub { color: inherit; opacity: 0.7; }
 .d-base { stroke: var(--line2); stroke-width: 1; }
 .d-xl { font-family: var(--font-data); font-size: 10px; fill: var(--muted); }
 .d-xt { font-size: 11px; fill: var(--ink2); }
+.notes-box { color: var(--ink2); border-left: 3px solid var(--line2); padding: 4px 10px; max-width: 100ch; }
 .pickbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--ink2); }
 .pickbar .chip { border-color: var(--pc); color: var(--pc); font-weight: 600; font-family: var(--font-data); }
 .pickbar input { width: 64px; }
