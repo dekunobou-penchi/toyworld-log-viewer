@@ -127,6 +127,11 @@ function clip(id: string, top: number, h: number): string {
     return `<defs><clipPath id="${id}"><rect x="${M.l}" y="${top - 4}" width="${width - M.l - M.r}" height="${h - M.b - top + 8}"/></clipPath></defs>`;
 }
 
+/** グラフの描画域を囲む軸の枠 */
+function plotFrame(h: number): string {
+    return `<rect class="plotframe" x="${M.l}" y="${M.t}" width="${width - M.l - M.r}" height="${h - M.t - M.b}"/>`;
+}
+
 function frame(h: number, label: string): string {
     return `<svg viewBox="0 0 ${width} ${h}" height="${h}" role="img" aria-label="${esc(label)}">`;
 }
@@ -219,7 +224,7 @@ function drawCharts(): void {
         let s = frame(h, `${def.title} の推移`) + clip(clipId, M.t, h);
         s += `<g class="grid">${yt.map((v) => `<line x1="${M.l}" x2="${width - M.r}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}</g>`;
         s += `<g class="axis">${yt.map((v) => `<text x="${M.l - 6}" y="${y(v)}" text-anchor="end" dominant-baseline="central">${v}</text>`).join('')}</g>`;
-        s += xAxis(sx, h);
+        s += xAxis(sx, h) + plotFrame(h);
         s += `<g clip-path="url(#${clipId})">`;
         // 拡大時はティックごとの点も打つ（1点あたり 8px 以上あるとき）
         const showDots = sx.iw / (sx.b - sx.a) >= 8;
@@ -312,7 +317,7 @@ function drawL1Chart(host: HTMLElement, sx: XScale, t0: number, t1: number): voi
     let s = frame(h, '目標とのズレ（L1）の推移') + clip('clip-l1', M.t, h);
     s += `<g class="grid">${yt.map((v) => `<line x1="${M.l}" x2="${width - M.r}" y1="${y(v)}" y2="${y(v)}"/>`).join('')}</g>`;
     s += `<g class="axis">${yt.map((v) => `<text x="${M.l - 6}" y="${y(v)}" text-anchor="end" dominant-baseline="central">${v}</text>`).join('')}</g>`;
-    s += xAxis(sx, h);
+    s += xAxis(sx, h) + plotFrame(h);
     s += `<line x1="${M.l}" x2="${width - M.r}" y1="${y(D.l1Chance)}" y2="${y(D.l1Chance)}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
     let d = '';
     for (let t = t0; t <= t1; t++) d += `${t === t0 ? 'M' : 'L'}${sx.x(t).toFixed(1)},${y(D.l1[t]).toFixed(1)}`;
@@ -446,7 +451,7 @@ function buildOverview(): void {
         }
         s += `<path d="${d}" fill="none" stroke="${playerColor(P.idx)}" stroke-width="1" opacity="0.7"/>`;
     }
-    s += xAxis(sx, h);
+    s += xAxis(sx, h) + plotFrame(h);
     s +=
         `<rect class="ov-mask" data-side="l" y="2" height="${h - M.b}"/>` +
         `<rect class="ov-mask" data-side="r" y="2" height="${h - M.b}"/>` +

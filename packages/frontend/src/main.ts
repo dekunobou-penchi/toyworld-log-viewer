@@ -28,7 +28,6 @@ function seek(t: number): void {
     S.t = Math.max(0, Math.min(E.T - 1, t));
     $<HTMLInputElement>('slider').value = String(S.t);
     $('tickLabel').textContent = `tick ${S.t + 1} / ${E.T}`;
-    $<HTMLInputElement>('dSlider').value = String(S.t);
     // 入力中の値は上書きしない（打っている途中で再生が進んでも消えないように）
     if (document.activeElement !== $('dTick')) $<HTMLInputElement>('dTick').value = String(S.t + 1);
     renderMap();
@@ -62,7 +61,7 @@ function loop(ts: number): void {
 }
 
 function setPlayButton(playing: boolean): void {
-    for (const id of ['bPlay', 'dPlay']) {
+    for (const id of ['bPlay']) {
         const b = $(id);
         b.textContent = playing ? '❚❚' : '▶';
         b.title = playing ? '停止（Space）' : '再生（Space）';
@@ -181,7 +180,6 @@ async function openExperiment(id: string, keepView = false): Promise<void> {
         $('empty').hidden = true;
         $('main').hidden = false;
         $<HTMLInputElement>('slider').max = String(exp.T - 1);
-        $<HTMLInputElement>('dSlider').max = String(exp.T - 1);
         $<HTMLInputElement>('dTick').max = String(exp.T);
         $('dTotal').textContent = `/ ${exp.T}`;
         $<HTMLInputElement>('rFrom').max = String(exp.T);
@@ -194,7 +192,6 @@ async function openExperiment(id: string, keepView = false): Promise<void> {
         buildContextSelect();
         buildDist();
         seek(S.t);
-        updateDock();
         await loadStats();
     } catch (e) {
         if (prev) showError((e as Error).message);
@@ -232,7 +229,8 @@ function bindEvents(): void {
     $('trail').addEventListener('change', renderMap);
     $('showView').addEventListener('change', renderMap);
 
-    bindDock();
+    bindTickInput();
+    bindTabs();
     bindMapEvents(selectPlayer);
     bindPlayerEvents(selectPlayer);
     bindChartEvents();
@@ -320,50 +318,14 @@ function bindEvents(): void {
     window.addEventListener('scroll', hideTip, { passive: true });
 }
 
-/* ---------------- 固定の再生バー ---------------- */
+/* ---------------- ツールバーのティック入力 ---------------- */
 
-/** 実験を開いたあとなど、レイアウトが変わったときに呼ぶ */
-let updateDock: () => void = () => {};
-
-function bindDock(): void {
-    const dock = $('dock');
-    // リプレイの操作（スライダーの行）が画面の上に消えたら出す。
-    // IntersectionObserver は監視開始時に main が非表示だと発火しないことがあるので、スクロール位置で見る
-    const target = $('slider').closest('.controls')!;
-    let queued = false;
-    const update = () => {
-        queued = false;
-        dock.hidden = $('main').hidden || target.getBoundingClientRect().bottom > 0;
-    };
-    const schedule = () => {
-        if (!queued) {
-            queued = true;
-            requestAnimationFrame(update);
-        }
-    };
-    window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', schedule);
-    updateDock = schedule;
-
-    dock.addEventListener('click', (e) => {
-        const b = (e.target as Element).closest<HTMLElement>('[data-dock], [data-jump]');
-        if (!b || !S.exp) return;
-        const act = b.dataset.dock;
-        if (act === 'start') pick(0);
-        else if (act === 'prev') pick(S.t - 1);
-        else if (act === 'next') pick(S.t + 1);
-        else if (act === 'play') (S.playing ? stop() : play());
-        else if (b.dataset.jump) {
-            const sec = document.getElementById(b.dataset.jump);
-            if (sec && !sec.hidden) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    });
-    $<HTMLInputElement>('dSlider').addEventListener('input', (e) => pick(Number((e.target as HTMLInputElement).value)));
+function bindTickInput(): void {
     const dTick = $<HTMLInputElement>('dTick');
     const go = () => {
         const v = parseInt(dTick.value, 10);
         if (S.exp && Number.isFinite(v)) pick(v - 1);
-        dTick.value = String(S.t + 1);
+        if (S.exp) dTick.value = String(S.t + 1);
     };
     dTick.addEventListener('change', go);
     dTick.addEventListener('keydown', (e) => {
@@ -371,10 +333,61 @@ function bindDock(): void {
             go();
             dTick.select();
         } else if (e.key === 'Escape') {
-            dTick.value = String(S.t + 1);
+            if (S.exp) dTick.value = String(S.t + 1);
             dTick.blur();
         }
     });
+}
+
+/* ---------------- タブ ---------------- */
+
+const TAB_KEY = 'toyworld-viewer.tab';
+
+function showTab(name: string): void {
+    const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+    if (!tabs.some((b) => b.dataset.tab === name)) name = 'ts';
+    for (const b of tabs) b.setAttribute('aria-selected', String(b.dataset.tab === name));
+    for (const p of document.querySelectorAll<HTMLElement>('[data-panel]')) p.hidden = p.dataset.panel !== name;
+    try {
+        localStorage.setItem(TAB_KEY, name);
+    } catch {
+        /* 保存できなくても表示はできる */
+    }
+    if (!S.exp || $('main').hidden) return;
+    // 隠れていた間は幅が測れないので、出したときに描き直す
+    if (name === 'ts') {
+        buildCharts(pick);
+        renderCursors();
+    } else if (name === 'dist') {
+        renderDistNow();
+        renderDistRange();
+    }
+}
+
+function bindTabs(): void {
+    const list = document.querySelector<HTMLElement>('.tabs')!;
+    list.addEventListener('click', (e) => {
+        const b = (e.target as Element).closest<HTMLElement>('[data-tab]');
+        if (b) showTab(b.dataset.tab!);
+    });
+    // ← → でタブを移動（タブにフォーカスがあるとき）
+    list.addEventListener('keydown', (e) => {
+        const tabs = [...list.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+        const i = tabs.indexOf(document.activeElement as HTMLButtonElement);
+        if (i < 0 || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        next.focus();
+        showTab(next.dataset.tab!);
+    });
+    let saved = 'ts';
+    try {
+        saved = localStorage.getItem(TAB_KEY) ?? 'ts';
+    } catch {
+        /* 読めなければ時系列 */
+    }
+    showTab(saved);
 }
 
 async function init(): Promise<void> {

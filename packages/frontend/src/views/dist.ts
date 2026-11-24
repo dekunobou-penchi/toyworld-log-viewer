@@ -70,8 +70,7 @@ function togglePick(k: number): void {
 
 export function buildDist(): void {
     const E = requireExp();
-    // 比較できない実験でもセクションは出し、理由を書く（黙って消えると機能が無いように見えるため）
-    $('distSec').hidden = false;
+    // 比較できない実験でも理由を書く（黙って消えると機能が無いように見えるため）。表示・非表示はタブが決める
     $('distBody').hidden = !E.dist;
     $('refillSummary').hidden = E.refills.length === 0 && !E.dist;
     const D = E.dist;
@@ -130,7 +129,7 @@ export function renderDistNow(): void {
         s += '</g>';
         if ((k - 1) % every === 0 || k === D.N) s += `<text class="d-xl" x="${x0 + bw / 2}" y="${bottom + 14}" text-anchor="middle">${k}</text>`;
     }
-    s += `<line x1="${l}" x2="${W - r}" y1="${bottom}" y2="${bottom}" class="d-base"/>`;
+    s += `<rect class="plotframe" x="${l}" y="${top}" width="${W - l - r}" height="${bottom - top}"/>`;
     s += `<text class="d-xt" x="${(l + W - r) / 2}" y="${H - 4}" text-anchor="middle">ブロック ID</text>`;
     s += '</svg>';
     $('distNow').innerHTML = s;
@@ -238,7 +237,7 @@ function renderHist(st: RefillStats, D: DistributionInfo): void {
         if ((c - lo) % every === 0 || c === hi) s += `<text class="d-xl" x="${X(c)}" y="${bottom + 14}" text-anchor="middle">${c}</text>`;
         s += `<rect data-c="${c}" x="${l + (c - lo) * cw}" y="${top}" width="${cw}" height="${bottom - top}" fill="transparent"/>`;
     }
-    s += `<line x1="${l}" x2="${W - r}" y1="${bottom}" y2="${bottom}" class="d-base"/>`;
+    s += `<rect class="plotframe" x="${l}" y="${top}" width="${W - l - r}" height="${bottom - top}"/>`;
     s += `<text class="d-xt" x="${(l + W - r) / 2}" y="${H - 4}" text-anchor="middle">マップ上の個数（${D.M} マス中）</text>`;
     s += '</svg>';
     $('distHist').innerHTML = s;
@@ -278,7 +277,7 @@ function renderRefillIds(st: RefillStats, D: DistributionInfo): void {
         s += '</g>';
         if ((k - 1) % every === 0 || k === D.N) s += `<text class="d-xl" x="${x0 + bw / 2}" y="${bottom + 14}" text-anchor="middle">${k}</text>`;
     }
-    s += `<line x1="${l}" x2="${W - r}" y1="${bottom}" y2="${bottom}" class="d-base"/>`;
+    s += `<rect class="plotframe" x="${l}" y="${top}" width="${W - l - r}" height="${bottom - top}"/>`;
     s += `<text class="d-xt" x="${(l + W - r) / 2}" y="${H - 4}" text-anchor="middle">補充されたブロック ID</text>`;
     s += '</svg>';
     $('refillIds').innerHTML = s;
