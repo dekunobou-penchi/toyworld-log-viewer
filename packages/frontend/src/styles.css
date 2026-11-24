@@ -92,6 +92,25 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--accent); margi
 section { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .sec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
 
+/* 固定の再生バー */
+.dock {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 15;
+  background: color-mix(in oklab, var(--bg) 94%, transparent); border-bottom: 1px solid var(--line2);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.dock-in { max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding-block: 6px; }
+.dock-ctl { display: flex; align-items: center; gap: 6px; flex: 1 1 360px; min-width: 0; }
+.dock-tick { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; white-space: nowrap; }
+.dock-tick input { width: 64px; }
+#dSlider { flex: 1 1 120px; min-width: 60px; }
+.dock .icon { white-space: nowrap; flex: none; }
+.dock-nav { display: flex; flex-wrap: wrap; gap: 4px; }
+@media (max-width: 560px) { .dock [data-dock="start"] { display: none; } .dock-ctl { gap: 4px; } .dock-tick input { width: 56px; } }
+.dock-nav button { font-size: 12px; padding: 1px 8px; }
+section { scroll-margin-top: 64px; }
+@media (max-width: 560px) { section { scroll-margin-top: 96px; } }
+
 /* replay */
 .replay { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 900px) { .replay { grid-template-columns: minmax(0, 1fr); } }

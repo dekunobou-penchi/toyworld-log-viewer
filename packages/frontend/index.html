@@ -14,6 +14,26 @@
     <span class="muted small" id="dataDir"></span>
   </header>
 
+  <!-- リプレイの操作が画面外に出たら上に固定で出す再生バー（どこまでスクロールしてもティックを動かせる） -->
+  <div class="dock" id="dock" hidden>
+    <div class="dock-in">
+      <div class="dock-ctl">
+        <button type="button" class="icon" data-dock="start" title="最初へ" aria-label="最初へ">|◀</button>
+        <button type="button" class="icon" data-dock="prev" title="1ティック戻る（←）" aria-label="1ティック戻る">◀</button>
+        <button type="button" class="icon" data-dock="play" id="dPlay" title="再生（Space）" aria-label="再生">▶</button>
+        <button type="button" class="icon" data-dock="next" title="1ティック進む（→）" aria-label="1ティック進む">▶|</button>
+        <label class="dock-tick mono">tick <input type="number" id="dTick" min="1" aria-label="ティックを入力して移動"> <span class="muted" id="dTotal">/ —</span></label>
+        <input type="range" id="dSlider" min="0" max="0" value="0" aria-label="ティック">
+      </div>
+      <nav class="dock-nav" aria-label="セクションへ移動">
+        <button type="button" data-jump="secReplay">リプレイ</button>
+        <button type="button" data-jump="secTs">時系列</button>
+        <button type="button" data-jump="secStats">集計</button>
+        <button type="button" data-jump="distSec" id="jumpDist">目標分布</button>
+      </nav>
+    </div>
+  </div>
+
   <div id="empty" class="empty" hidden></div>
 
   <main id="main" hidden>
@@ -23,7 +43,7 @@
     </div>
     <div id="notes" class="notes"></div>
 
-    <section>
+    <section id="secReplay">
       <h2>リプレイ</h2>
       <div class="replay">
         <div class="replay-map">
@@ -48,7 +68,7 @@
       </div>
     </section>
 
-    <section>
+    <section id="secTs">
       <div class="sec-head">
         <h2>時系列</h2>
         <div class="legend" id="legend"></div>
@@ -70,7 +90,7 @@
       </div>
     </section>
 
-    <section>
+    <section id="secStats">
       <div class="sec-head">
         <h2>集計</h2>
         <div class="filters">
@@ -131,7 +151,7 @@
       <summary>操作と定義</summary>
       <dl>
         <dt>リプレイ</dt>
-        <dd>← → で1ティック、Shift + ← → で10ティック、Space で再生/停止。マップのセルにカーソルでブロックID とエネルギー。プレイヤーをクリックで選択（視界を表示）。</dd>
+        <dd>下にスクロールしてリプレイの操作が見えなくなると、画面上部に再生バーが出る（ティック番号を入力して Enter で移動、右のボタンで各セクションへ移動）。← → で1ティック、Shift + ← → で10ティック、Space で再生/停止。マップのセルにカーソルでブロックID とエネルギー。プレイヤーをクリックで選択（視界を表示）。</dd>
         <dt>時系列</dt>
         <dd>グラフ上をドラッグで範囲を拡大、クリックでそのティックへ移動。Ctrl/⌘ + ホイール（ピンチ）で拡大縮小、Shift + ホイールか横スクロールで左右に移動。上のバーは枠をドラッグで移動、枠の端で幅を変更。+ / - / 0 キーで拡大 / 縮小 / 全期間。縦軸は全期間で固定。</dd>
         <dt>ティック</dt>
