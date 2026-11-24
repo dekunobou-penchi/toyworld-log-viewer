@@ -55,6 +55,27 @@ LP・保持ブロック・Ltime の3つのグラフと行動タイムライン�
 
 再生やキー操作で現在のティックが表示範囲の外に出ると、範囲が自動でずれて追いかける。
 
+### 書き出し
+
+各セクションの「CSV」ボタンでデータを、グラフ見出しの「SVG / PNG」ボタンで画像を保存できる。
+
+- **範囲**：集計の範囲（tick の欄）をそのまま使う。「ID ごと」の表の個数だけは選択中のティック
+- **CSV**：1 行 1 観測の縦長、列名は英語の snake_case、BOM 付き UTF-8・CRLF（pandas / R / Excel でそのまま読める）。`tick` は画面と同じ 1 始まり
+- **まとめて書き出し（JSON）**：下の全データと条件（実験 ID・範囲・ルール・α・目標分布・パラメータ）を1つにしたもの。あとで「どの条件の数字か」を追える
+- **画像**：ライトの配色・白背景で、凡例を下に付ける。PNG は 2 倍の解像度
+
+| ボタン | ファイル | 1 行の中身 |
+|---|---|---|
+| 時系列 › ティック系列 | `…_players.csv` | ティック × プレイヤー（位置・向き・LP・保持・Ltime・行動・空振り・死亡・獲得エネルギー・状況） |
+| 時系列 › L1 の推移 | `…_dist_series.csv` | ティック（L1、目安超えか、±2σ の外の ID 数） |
+| 集計 › プレイヤー | `…_summary.csv` | プレイヤー（死亡・最長生存・平均 LP・有効な eat・空振り率など） |
+| 集計 › 行動 | `…_actions.csv` | プレイヤー × 行動（回数・割合・有効率） |
+| 集計 › 状況別 | `…_context.csv` | プレイヤー × 状況 × 行動（回数・割合） |
+| 目標分布 › ID ごと | `…_dist_ids_at{tick}.csv` | ブロック ID（目標・偶然の範囲・選択中ティックの個数・補充回数と期待） |
+| 目標分布 › 補充イベント | `…_refills.csv` | 補充 1 回（ティック・場所・取られた ID・補充された ID・原因・プレイヤー） |
+
+API からも取れる：`GET /api/experiments/:id/export/:kind?from=&to=&t=`（`kind` は `players` / `dist_series` / `summary` / `actions` / `context` / `dist_ids` / `refills` / `bundle`、`from` / `to` / `t` は 0 始まり）。
+
 ### 目標分布との比較
 
 refill（無ければ initMap）のルールが目標分布（`target`）を使う実験では、toyWorld の rule-editor の refill プレビューと同じ見方で、実際のマップが目標にどれだけ近いかを表示する。目標分布は `meta.json` の `ruleFile.artifacts` から、補充の記録は `events.jsonl` から読む。
@@ -77,6 +98,7 @@ refill（無ければ initMap）のルールが目標分布（`target`）を使�
 |---|---|---|
 | GET | `/api/experiments` | 実験の一覧（`ExperimentListResponse`） |
 | GET | `/api/experiments/:id` | 組み立て済みの実験（`Experiment`）。全ティックのマップとプレイヤー系列、補充の記録、目標分布との比較（`dist`） |
+| GET | `/api/experiments/:id/export/:kind?from=&to=&t=` | CSV / JSON の書き出し（上の「書き出し」） |
 | GET | `/api/experiments/:id/stats?from=&to=` | ティック範囲の集計（`StatsResponse`）。`from`/`to` は 0 始まり、両端含む。補充と分布の集計は `refill` |
 
 型は `packages/shared/src/api.ts`。レスポンスは gzip 圧縮される。
@@ -99,12 +121,13 @@ packages/
 │       ├── view.ts    # 視界の再計算（toyWorld の view.ts と同じ規則）
 │       ├── stats.ts   # 範囲集計
 │       ├── distribution.ts # 目標分布との比較、補充の集計
+│       ├── export.ts  # CSV / JSON の書き出し
 │       └── store.ts   # 組み立て済み実験のキャッシュ
 └── frontend/src/
     ├── main.ts        # 初期化、再生制御、イベント
     ├── api.ts         # API クライアント
     ├── state.ts       # 画面の状態
-    └── views/         # meta / map / players / charts / stats / dist
+    └── views/         # meta / map / players / charts / stats / dist / export
 ```
 
 ## ログの解釈

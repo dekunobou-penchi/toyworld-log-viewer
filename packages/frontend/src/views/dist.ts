@@ -2,6 +2,7 @@ import type { DistributionInfo, RefillStats } from '@viewer/shared';
 import { $, esc, niceTicks, pct } from '../dom.js';
 import { S, requireExp } from '../state.js';
 import { hideTip, showTip } from '../tooltip.js';
+import { imgButtons } from './export.js';
 
 /*
  * 目標分布との比較（toyWorld の rule-editor の refill プレビューと同じ見せ方）。
@@ -11,7 +12,7 @@ import { hideTip, showTip } from '../tooltip.js';
  */
 
 const MAX_PICKS = 5;
-const PICK_COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s7)', 'var(--s4)'];
+export const PICK_COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s7)', 'var(--s4)'];
 const PAD = { l: 42, r: 14, t: 8, b: 34 };
 
 /** 個数の分布に出す ID。null = まだ選んでいない（既定を使う） */
@@ -47,7 +48,7 @@ function defaultPicks(D: DistributionInfo): number[] {
     return [ids[0], ids[Math.floor((ids.length - 1) / 2)], ids[ids.length - 1]].sort((a, b) => a - b);
 }
 
-function currentPicks(): number[] {
+export function currentPicks(): number[] {
     const E = requireExp();
     if (!E.dist) return [];
     if (pickedFor !== E.id) {
@@ -136,7 +137,8 @@ export function renderDistNow(): void {
 
     $('distNowTitle').innerHTML =
         `tick ${S.t + 1} のマップの分布 <span class="muted">L1 ${f3(D.l1[S.t])}${D.l1[S.t] > D.l1Chance ? '（偶然の目安超え）' : ''}` +
-        ` · ±2σ の外 ${outside} / ${D.N} ID（偶然でも約 ${D.outsideExpected.toFixed(1)} 個）</span>`;
+        ` · ±2σ の外 ${outside} / ${D.N} ID（偶然でも約 ${D.outsideExpected.toFixed(1)} 個）</span>` +
+        imgButtons(`dist_tick${S.t + 1}`, 'distNow');
     // ツールチップ用に今の値を持っておく
     nowShare = share;
     nowCount = c;

@@ -2,6 +2,7 @@ import { ACTION_GROUPS, GROUP_OF, type PlayerSeries } from '@viewer/shared';
 import { $, esc, niceTicks, playerColor, svgNS } from '../dom.js';
 import { S, requireExp } from '../state.js';
 import { hideTip, showTip } from '../tooltip.js';
+import { imgButtons } from './export.js';
 
 const M = { l: 42, r: 14, t: 6, b: 22 };
 const CHART_H = 128;
@@ -260,7 +261,7 @@ function drawCharts(): void {
         const div = document.createElement('div');
         div.className = 'chart';
         const note = def.deaths ? ' <span class="muted">● 死亡</span>' : '';
-        div.innerHTML = `<div class="ctitle">${esc(def.title)}${note}</div>${s}`;
+        div.innerHTML = `<div class="ctitle">${esc(def.title)}${note}${imgButtons(def.key)}</div>${s}`;
         host.append(div);
 
         hookChart(div, sx, (t) => {
@@ -323,7 +324,7 @@ function drawL1Chart(host: HTMLElement, sx: XScale, t0: number, t1: number): voi
     const div = document.createElement('div');
     div.className = 'chart';
     div.innerHTML =
-        `<div class="ctitle">目標とのズレ（L1） <span class="muted">— 実線 L1　<span style="color:var(--accent)">┄ 偶然でも出る L1 の目安（95%）${D.l1Chance.toFixed(3)}</span></span></div>${s}`;
+        `<div class="ctitle">目標とのズレ（L1） <span class="muted">— 実線 L1　<span style="color:var(--accent)">┄ 偶然でも出る L1 の目安（95%）${D.l1Chance.toFixed(3)}</span></span>${imgButtons('l1')}</div>${s}`;
     host.append(div);
     hookChart(div, sx, (t) => {
         const v = D.l1[t];

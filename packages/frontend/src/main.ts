@@ -14,6 +14,7 @@ import {
     zoomBy,
     zoomReset,
 } from './views/charts.js';
+import { bindExportEvents, renderExportButtons } from './views/export.js';
 import { bindDistEvents, buildDist, renderDistNow, renderDistRange } from './views/dist.js';
 import { bindMapEvents, buildMap, renderMap } from './views/map.js';
 import { renderExperimentSelect, renderMeta, showError } from './views/meta.js';
@@ -34,6 +35,7 @@ function seek(t: number): void {
     renderPlayers();
     renderCursors();
     renderDistNow();
+    renderExportButtons();
     // 時系列を拡大しているときは、カーソルが範囲の外に出たら追いかける
     ensureVisible(S.t);
 }
@@ -106,6 +108,7 @@ async function loadStats(): Promise<void> {
     const ctrl = new AbortController();
     statsAbort = ctrl;
     renderRangeInputs();
+    renderExportButtons();
     $('statsGrid').classList.add('loading');
     $('distSec').classList.add('loading');
     try {
@@ -234,6 +237,7 @@ function bindEvents(): void {
     bindPlayerEvents(selectPlayer);
     bindChartEvents();
     bindDistEvents();
+    bindExportEvents();
 
     $('legend').addEventListener('click', (e) => {
         const b = (e.target as Element).closest<HTMLElement>('[data-p]');

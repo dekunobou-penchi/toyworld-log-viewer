@@ -40,6 +40,7 @@
     <div class="metaline">
       <span id="expName" class="exp-title">—</span>
       <span class="meta mono small" id="meta"></span>
+      <button type="button" class="dlbtn dl-all" data-export="bundle" data-what="全データと条件（JSON）">まとめて書き出し（JSON）</button>
     </div>
     <div id="notes" class="notes"></div>
 
@@ -71,6 +72,10 @@
     <section id="secTs">
       <div class="sec-head">
         <h2>時系列</h2>
+        <div class="dlgroup"><span>CSV <span class="dlrange"></span></span>
+          <button type="button" class="dlbtn" data-export="players" data-what="ティック×プレイヤーの系列">ティック系列</button>
+          <button type="button" class="dlbtn" data-export="dist_series" data-what="L1 の推移">L1 の推移</button>
+        </div>
         <div class="legend" id="legend"></div>
       </div>
       <div id="tsArea">
@@ -83,7 +88,7 @@
         <div class="overview" id="overview"></div>
         <div class="charts" id="charts"></div>
         <div class="chart">
-          <div class="ctitle">行動</div>
+          <div class="ctitle">行動<span class="imgdl"><button type="button" class="dlbtn" data-img="svg" data-name="actions_timeline">SVG</button><button type="button" class="dlbtn" data-img="png" data-name="actions_timeline">PNG</button></span></div>
           <div id="timeline"></div>
           <div class="tl-legend" id="tlLegend"></div>
         </div>
@@ -93,6 +98,11 @@
     <section id="secStats">
       <div class="sec-head">
         <h2>集計</h2>
+        <div class="dlgroup"><span>CSV <span class="dlrange"></span></span>
+          <button type="button" class="dlbtn" data-export="summary" data-what="プレイヤーの集計">プレイヤー</button>
+          <button type="button" class="dlbtn" data-export="actions" data-what="行動の頻度">行動</button>
+          <button type="button" class="dlbtn" data-export="context" data-what="状況別の行動分布">状況別</button>
+        </div>
         <div class="filters">
           <label for="rFrom">tick</label>
           <input type="number" id="rFrom" min="1">
@@ -115,6 +125,10 @@
     <section id="distSec" hidden>
       <div class="sec-head">
         <h2>目標分布との比較</h2>
+        <div class="dlgroup"><span>CSV</span>
+          <button type="button" class="dlbtn" data-export="dist_ids" data-what="ID ごとの比較">ID ごと</button>
+          <button type="button" class="dlbtn" data-export="refills" data-what="補充イベント">補充イベント</button>
+        </div>
         <span class="muted small mono" id="distRule"></span>
       </div>
       <div id="distNone" class="notes-box small" hidden></div>
@@ -129,7 +143,7 @@
             <span><i class="d-band"></i>偶然の範囲（2項分布 B(M, p*) の ±2σ）</span>
           </div>
         </div>
-        <h3>個数の分布 <span class="muted" id="histRange"></span></h3>
+        <h3>個数の分布 <span class="muted" id="histRange"></span><span class="imgdl"><button type="button" class="dlbtn" data-img="svg" data-name="count_hist" data-src="distHist">SVG</button><button type="button" class="dlbtn" data-img="png" data-name="count_hist" data-src="distHist">PNG</button></span></h3>
         <div class="pickbar" id="pickBar"></div>
         <div class="chart"><div id="distHist"></div></div>
         <div class="tl-legend">
@@ -137,7 +151,7 @@
           <span>線：目標どおりにばらまいたときの 2項分布 B(M, p*)</span>
           <span class="muted">隣り合うティックのマップはほとんど同じなので、棒の山は線より細く・ずれて見えやすい</span>
         </div>
-        <h3>補充されたブロック <span class="muted" id="refillRange"></span></h3>
+        <h3>補充されたブロック <span class="muted" id="refillRange"></span><span class="imgdl"><button type="button" class="dlbtn" data-img="svg" data-name="refills_by_id" data-src="refillIds">SVG</button><button type="button" class="dlbtn" data-img="png" data-name="refills_by_id" data-src="refillIds">PNG</button></span></h3>
         <div class="chart"><div id="refillIds"></div></div>
         <div class="tl-legend" id="refillIdsLegend"></div>
       </div>
@@ -164,6 +178,8 @@
         <dd>有効な eat で消費したブロックの、エネルギー表の値の合計。</dd>
         <dt>目標分布との比較</dt>
         <dd>refill（無ければ initMap）のルールが target に使う分布（meta.json の ruleFile.artifacts）とマップの割合を比べる。L1 は ID ごとの割合の差の絶対値の和。偶然の目安は、目標どおりの確率で全マスにばらまいたときに 95% がこれ以下になる L1（モンテカルロ）。偶然の範囲は 2項分布 B(M, p*) の ±2σ。toyWorld の rule-editor の refill プレビューと同じ定義。</dd>
+        <dt>書き出し</dt>
+        <dd>CSV は列名が英語の縦長形式（BOM 付き UTF-8）で、tick は画面と同じ 1 始まり。範囲は集計の範囲（ID ごとの表の個数だけは選択中のティック）。「まとめて書き出し」は全データと条件（実験・範囲・ルール・α・目標分布）を1つの JSON にする。グラフの SVG / PNG はライトの配色で、凡例を下に付けて書き出す。</dd>
         <dt>補充</dt>
         <dd>events.jsonl の kind = refill。そのティックで選ばれた行動（get / fusion）で起きたものとして、集計の範囲で数える。「ルールの期待」は、そのティックのマップから mixedRefill の確率を計算し直して足したもの。同じティックの他の行動（put など）の影響は追えないので推定。「補充以外のマスの変化」は行動の前後のマップで変わったマスのうち補充でないもの（put、手持ちとの交換など）。</dd>
         <dt>状況</dt>

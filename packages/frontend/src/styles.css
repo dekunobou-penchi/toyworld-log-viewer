@@ -193,6 +193,15 @@ table.kv th { text-align: left; font-weight: 400; color: var(--ink2); border-bot
 table.kv td { white-space: normal; }
 @media (max-width: 560px) { table.kv { width: 100%; } table.kv th { white-space: normal; } }
 
+/* 書き出し */
+.dlgroup { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-right: auto; }
+.dlgroup > span { margin-right: 2px; }
+.dlbtn { font-size: 11px; padding: 0 6px; line-height: 1.6; color: var(--ink2); }
+.dl-all { margin-left: auto; }
+.ctitle, .dist h3 { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.imgdl { margin-left: auto; display: inline-flex; gap: 4px; opacity: 0.55; }
+.chart:hover .imgdl, .dist h3:hover .imgdl, .imgdl:focus-within { opacity: 1; }
+
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--ink2); font-size: 12px; }
 
 #tip {
