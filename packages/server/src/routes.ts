@@ -3,6 +3,7 @@ import type { ApiError, ExperimentListResponse } from '@viewer/shared';
 import { LogFormatError } from './logs/build.js';
 import { listExperiments } from './logs/reader.js';
 import { computeStats } from './logs/stats.js';
+import { EXPORT_KINDS, ExportUnavailableError, exportData, type ExportKind } from './logs/export.js';
 import type { ExperimentStore } from './logs/store.js';
 
 function fail(res: Response, status: number, error: string, message: string): void {
@@ -40,6 +41,27 @@ export function createApiRouter(dataDir: string, store: ExperimentStore): Router
             }
             res.json(computeStats(exp, from, to));
         } catch (e) {
+            if (e instanceof LogFormatError) return fail(res, 422, 'bad_log', e.message);
+            throw e;
+        }
+    });
+
+    // データの書き出し。kind は EXPORT_KINDS のどれか。from / to / t は 0 始まり
+    router.get('/experiments/:id/export/:kind', async (req, res) => {
+        try {
+            const kind = req.params.kind as ExportKind;
+            if (!EXPORT_KINDS.includes(kind)) return fail(res, 400, 'bad_kind', `kind は ${EXPORT_KINDS.join(' / ')} のどれかです。`);
+            const exp = await store.get(req.params.id);
+            if (!exp) return fail(res, 404, 'not_found', `実験 ${req.params.id} が見つかりません。`);
+            const num = (v: unknown, d: number) => (v === undefined ? d : Number(v));
+            const from = num(req.query.from, 0), to = num(req.query.to, exp.T - 1), t = num(req.query.t, 0);
+            if (![from, to, t].every(Number.isFinite)) return fail(res, 400, 'bad_range', 'from / to / t は数値で指定してください（0 始まりのティック）。');
+            const out = exportData(exp, kind, { from, to, t });
+            res.attachment(out.filename);
+            res.type(out.contentType);
+            res.send(out.body);
+        } catch (e) {
+            if (e instanceof ExportUnavailableError) return fail(res, 409, 'unavailable', e.message);
             if (e instanceof LogFormatError) return fail(res, 422, 'bad_log', e.message);
             throw e;
         }
