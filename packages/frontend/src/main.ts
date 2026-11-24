@@ -27,6 +27,9 @@ function seek(t: number): void {
     S.t = Math.max(0, Math.min(E.T - 1, t));
     $<HTMLInputElement>('slider').value = String(S.t);
     $('tickLabel').textContent = `tick ${S.t + 1} / ${E.T}`;
+    $<HTMLInputElement>('dSlider').value = String(S.t);
+    // 入力中の値は上書きしない（打っている途中で再生が進んでも消えないように）
+    if (document.activeElement !== $('dTick')) $<HTMLInputElement>('dTick').value = String(S.t + 1);
     renderMap();
     renderPlayers();
     renderCursors();
@@ -57,10 +60,12 @@ function loop(ts: number): void {
 }
 
 function setPlayButton(playing: boolean): void {
-    const b = $('bPlay');
-    b.textContent = playing ? '❚❚' : '▶';
-    b.title = playing ? '停止' : '再生';
-    b.setAttribute('aria-label', b.title);
+    for (const id of ['bPlay', 'dPlay']) {
+        const b = $(id);
+        b.textContent = playing ? '❚❚' : '▶';
+        b.title = playing ? '停止（Space）' : '再生（Space）';
+        b.setAttribute('aria-label', playing ? '停止' : '再生');
+    }
 }
 
 function play(): void {
@@ -173,6 +178,9 @@ async function openExperiment(id: string, keepView = false): Promise<void> {
         $('empty').hidden = true;
         $('main').hidden = false;
         $<HTMLInputElement>('slider').max = String(exp.T - 1);
+        $<HTMLInputElement>('dSlider').max = String(exp.T - 1);
+        $<HTMLInputElement>('dTick').max = String(exp.T);
+        $('dTotal').textContent = `/ ${exp.T}`;
         $<HTMLInputElement>('rFrom').max = String(exp.T);
         $<HTMLInputElement>('rTo').max = String(exp.T);
         renderExperimentSelect();
@@ -183,6 +191,7 @@ async function openExperiment(id: string, keepView = false): Promise<void> {
         buildContextSelect();
         buildDist();
         seek(S.t);
+        updateDock();
         await loadStats();
     } catch (e) {
         if (prev) showError((e as Error).message);
@@ -220,6 +229,7 @@ function bindEvents(): void {
     $('trail').addEventListener('change', renderMap);
     $('showView').addEventListener('change', renderMap);
 
+    bindDock();
     bindMapEvents(selectPlayer);
     bindPlayerEvents(selectPlayer);
     bindChartEvents();
@@ -304,6 +314,63 @@ function bindEvents(): void {
     }).observe($('charts'));
 
     window.addEventListener('scroll', hideTip, { passive: true });
+}
+
+/* ---------------- 固定の再生バー ---------------- */
+
+/** 実験を開いたあとなど、レイアウトが変わったときに呼ぶ */
+let updateDock: () => void = () => {};
+
+function bindDock(): void {
+    const dock = $('dock');
+    // リプレイの操作（スライダーの行）が画面の上に消えたら出す。
+    // IntersectionObserver は監視開始時に main が非表示だと発火しないことがあるので、スクロール位置で見る
+    const target = $('slider').closest('.controls')!;
+    let queued = false;
+    const update = () => {
+        queued = false;
+        dock.hidden = $('main').hidden || target.getBoundingClientRect().bottom > 0;
+    };
+    const schedule = () => {
+        if (!queued) {
+            queued = true;
+            requestAnimationFrame(update);
+        }
+    };
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    updateDock = schedule;
+
+    dock.addEventListener('click', (e) => {
+        const b = (e.target as Element).closest<HTMLElement>('[data-dock], [data-jump]');
+        if (!b || !S.exp) return;
+        const act = b.dataset.dock;
+        if (act === 'start') pick(0);
+        else if (act === 'prev') pick(S.t - 1);
+        else if (act === 'next') pick(S.t + 1);
+        else if (act === 'play') (S.playing ? stop() : play());
+        else if (b.dataset.jump) {
+            const sec = document.getElementById(b.dataset.jump);
+            if (sec && !sec.hidden) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+    $<HTMLInputElement>('dSlider').addEventListener('input', (e) => pick(Number((e.target as HTMLInputElement).value)));
+    const dTick = $<HTMLInputElement>('dTick');
+    const go = () => {
+        const v = parseInt(dTick.value, 10);
+        if (S.exp && Number.isFinite(v)) pick(v - 1);
+        dTick.value = String(S.t + 1);
+    };
+    dTick.addEventListener('change', go);
+    dTick.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            go();
+            dTick.select();
+        } else if (e.key === 'Escape') {
+            dTick.value = String(S.t + 1);
+            dTick.blur();
+        }
+    });
 }
 
 async function init(): Promise<void> {
