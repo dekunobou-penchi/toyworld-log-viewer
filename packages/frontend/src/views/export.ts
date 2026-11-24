@@ -213,7 +213,7 @@ function standaloneSvg(src: SVGSVGElement, title: string, legend: LegendItem[]):
         bg.setAttribute('y', '0');
         bg.setAttribute('width', String(w));
         bg.setAttribute('height', String(h));
-        bg.setAttribute('fill', getComputedStyle(document.body).backgroundColor || '#ffffff');
+        bg.setAttribute('fill', getComputedStyle(root).getPropertyValue('--bg').trim() || '#ffffff');
         clone.insertBefore(bg, clone.firstChild);
         const t = document.createElementNS('http://www.w3.org/2000/svg', 'title');
         t.textContent = title;

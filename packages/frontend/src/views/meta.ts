@@ -6,15 +6,17 @@ export function renderMeta(): void {
     $('expName').textContent = E.title;
     const p = E.params;
     const kv: [string, string | number][] = [
-        ['ticks', E.T],
-        ['map', `${E.nx}×${E.ny}`],
-        ['block', p ? `${p.map.blockMin}–${p.map.blockMax - 1}` : `0–${E.blockMax - 1}`],
-        ['lp', p ? `${p.player.lpInitial} −${p.player.lpDecreasePerTick}/tick` : '—'],
-        ['view', p ? p.player.viewRange : '—'],
-        ['mode', p ? (p.transition === 'agent' ? 'agent' : `person ${p.tickIntervalSec}s`) : '—'],
-        ['players', E.players.length],
+        ['ティック数', E.T],
+        ['マップ', `${E.nx}×${E.ny}`],
+        ['ブロック ID', p ? `${p.map.blockMin}–${p.map.blockMax - 1}` : `0–${E.blockMax - 1}`],
+        ['LP', p ? `${p.player.lpInitial} −${p.player.lpDecreasePerTick}/tick` : '—'],
+        ['視界', p ? p.player.viewRange : '—'],
+        ['遷移', p ? (p.transition === 'agent' ? 'agent' : `person ${p.tickIntervalSec}s`) : '—'],
+        ['プレイヤー数', E.players.length],
     ];
-    $('meta').innerHTML = kv.map(([k, v]) => `<span><span class="k">${esc(k)}</span> ${esc(v)}</span>`).join('');
+    $('meta').innerHTML = `<tbody>${[['名前', E.title] as [string, string | number], ['ID', E.id] as [string, string | number], ...kv]
+        .map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td>${esc(v)}</td></tr>`)
+        .join('')}</tbody>`;
     $('notes').innerHTML = E.notes.map((n) => `<div>${esc(n)}</div>`).join('');
 }
 
