@@ -117,7 +117,17 @@
         <h3>状況別の行動分布 <select id="ctxPlayer" aria-label="プレイヤー"></select></h3>
         <div class="tblwrap"><table id="tContext"></table></div>
 
-        <h3>生存時間の分布 <span class="muted">（範囲内に死亡した回。範囲 <span id="lifeRange" class="mono"></span> はツールバーの集計範囲）</span></h3>
+        <h3>生存時間の分布 <span class="muted">（範囲内に死亡した回。範囲はこの欄だけのもので、ツールバーの集計範囲とは別）</span></h3>
+        <div class="pickbar" id="lifeRangeBar">
+          <span>範囲 tick</span>
+          <input type="number" id="lifeFrom" min="1" aria-label="生存時間の開始ティック">
+          <span>–</span>
+          <input type="number" id="lifeTo" min="1" aria-label="生存時間の終了ティック">
+          <button type="button" id="lifeAll">全期間</button>
+          <button type="button" id="lifeUpTo" title="最初から、いま選んでいるティックまで">現在まで</button>
+          <button type="button" id="lifeSync" title="ツールバーの集計範囲と同じにする">集計範囲に合わせる</button>
+          <span class="muted" id="lifeRange"></span>
+        </div>
         <div class="pickbar" id="lifeBar">
           <span>表示</span>
           <span class="tb-group" role="group" aria-label="表示の仕方">
@@ -196,7 +206,7 @@
         <dt>空振り / 有効率</dt>
         <dd>行動の前提条件（手ぶらで eat しない、正面が空きで get しない など）を満たしたかどうか。toyWorld の action.ts の分岐から判定。同じティックに他のプレイヤーが先に動いた場合はずれることがある。</dd>
         <dt>生存時間</dt>
-        <dd>1 回の生存＝生き返ってから死ぬまで。長さは死ぬ直前の Ltime（「最長生存」と同じ数え方）。集計範囲の中に死亡した回を数え、長さは 1 回分の全体（範囲より前に生まれていても）。範囲の終わりでまだ生きている回は「打ち切り」として回数だけ数え、ヒストグラムには入れない。棒 1 本は長さ [i·w, (i+1)·w − 1]（w = 棒の幅）。</dd>
+        <dd>1 回の生存＝生き返ってから死ぬまで。長さは死ぬ直前の Ltime（「最長生存」と同じ数え方）。生存時間の欄の範囲（ツールバーの集計範囲とは別に指定）の中に死亡した回を数え、長さは 1 回分の全体（範囲より前に生まれていても）。範囲の終わりでまだ生きている回は「打ち切り」として回数だけ数え、ヒストグラムには入れない。棒 1 本は長さ [i·w, (i+1)·w − 1]（w = 棒の幅）。</dd>
         <dt>獲得エネルギー</dt>
         <dd>有効な eat で消費したブロックの、エネルギー表の値の合計。</dd>
         <dt>目標分布との比較</dt>

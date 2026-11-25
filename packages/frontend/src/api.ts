@@ -1,4 +1,4 @@
-import type { ApiError, Experiment, ExperimentListResponse, StatsResponse } from '@viewer/shared';
+import type { ApiError, Experiment, ExperimentListResponse, LifeResponse, StatsResponse } from '@viewer/shared';
 
 export class ApiRequestError extends Error {}
 
@@ -28,4 +28,6 @@ export const api = {
     experiment: (id: string) => getJson<Experiment>(`/api/experiments/${encodeURIComponent(id)}`),
     stats: (id: string, from: number, to: number, signal?: AbortSignal) =>
         getJson<StatsResponse>(`/api/experiments/${encodeURIComponent(id)}/stats?from=${from}&to=${to}`, signal),
+    life: (id: string, from: number, to: number, signal?: AbortSignal) =>
+        getJson<LifeResponse>(`/api/experiments/${encodeURIComponent(id)}/life?from=${from}&to=${to}`, signal),
 };

@@ -195,3 +195,9 @@ export interface ApiError {
     error: string;
     message: string;
 }
+
+/** GET /api/experiments/:id/life?from=&to=（ティックは 0 始まり、両端含む） */
+export interface LifeResponse extends LifeStats {
+    from: number;
+    to: number;
+}
