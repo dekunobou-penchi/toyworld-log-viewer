@@ -56,7 +56,8 @@ export function createApiRouter(dataDir: string, store: ExperimentStore): Router
             const num = (v: unknown, d: number) => (v === undefined ? d : Number(v));
             const from = num(req.query.from, 0), to = num(req.query.to, exp.T - 1), t = num(req.query.t, 0);
             if (![from, to, t].every(Number.isFinite)) return fail(res, 400, 'bad_range', 'from / to / t は数値で指定してください（0 始まりのティック）。');
-            const out = exportData(exp, kind, { from, to, t });
+            const bin = req.query.bin === undefined ? 0 : Number(req.query.bin);
+            const out = exportData(exp, kind, { from, to, t, bin: Number.isFinite(bin) ? bin : 0 });
             res.attachment(out.filename);
             res.type(out.contentType);
             res.send(out.body);

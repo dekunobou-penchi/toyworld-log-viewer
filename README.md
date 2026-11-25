@@ -75,10 +75,22 @@ LP・保持ブロック・Ltime の3つのグラフと行動タイムライン�
 | 集計 › プレイヤー | `…_summary.csv` | プレイヤー（死亡・最長生存・平均 LP・有効な eat・空振り率など） |
 | 集計 › 行動 | `…_actions.csv` | プレイヤー × 行動（回数・割合・有効率） |
 | 集計 › 状況別 | `…_context.csv` | プレイヤー × 状況 × 行動（回数・割合） |
+| 集計 › 生存の一覧 | `…_lives.csv` | 1 回の生存（何回目か・開始と終了のティック・長さ・打ち切りか） |
+| 集計 › ヒストグラム | `…_life_hist_bin{幅}.csv` | 棒 × プレイヤー（長さの区間・回数。`player = all` は全員の合計）。棒の幅は画面の設定 |
 | 目標分布 › ID ごと | `…_dist_ids_at{tick}.csv` | ブロック ID（目標・偶然の範囲・選択中ティックの個数・補充回数と期待） |
 | 目標分布 › 補充イベント | `…_refills.csv` | 補充 1 回（ティック・場所・取られた ID・補充された ID・原因・プレイヤー） |
 
-API からも取れる：`GET /api/experiments/:id/export/:kind?from=&to=&t=`（`kind` は `players` / `dist_series` / `summary` / `actions` / `context` / `dist_ids` / `refills` / `bundle`、`from` / `to` / `t` は 0 始まり）。
+API からも取れる：`GET /api/experiments/:id/export/:kind?from=&to=&t=`（`kind` は `players` / `dist_series` / `summary` / `actions` / `context` / `lives` / `life_hist` / `dist_ids` / `refills` / `bundle`、`from` / `to` / `t` は 0 始まり、`life_hist` の棒の幅は `bin`（1 / 2 / 5 / 10 / 20 / 50 / 100、0 か省略で自動））。
+
+### 生存時間の分布
+
+集計タブの一番下に、1 回の生存（生き返ってから死ぬまで）の長さのヒストグラムと集計表を出す。
+
+- 長さは死ぬ直前の Ltime（集計の「最長生存」と同じ数え方）
+- 範囲はツールバーの集計範囲。範囲の中に死亡した回を数え、長さは 1 回分の全体（範囲より前に生まれていても）
+- 範囲の終わりでまだ生きている回は「打ち切り」として回数だけ数え、ヒストグラムには入れない
+- 表示は「まとめて」（プレイヤーごとに積み上げ）と「エージェントごと」（1 人 1 枚、縦軸・横軸をそろえる）を切り替えられる
+- 棒の幅は自動（棒が 30 本前後になる切りのいい幅）か 1 / 2 / 5 / 10 / 20 / 50 / 100 ティック。棒 1 本は長さ [i·w, (i+1)·w − 1]
 
 ### 目標分布との比較
 
@@ -114,6 +126,7 @@ packages/
 ├── shared/src/
 │   ├── game.ts        # toyWorld のログ形式（meta.json / world.jsonl / player_*.jsonl）
 │   ├── constants.ts   # 方向ベクトル、行動グループ、状況の分類
+│   ├── life.ts        # 生存時間の型と、棒の幅・振り分け（サーバとフロントで共通）
 │   └── api.ts         # API のリクエスト/レスポンス型
 ├── server/src/
 │   ├── index.ts       # Express、静的配信、エラーハンドラ
@@ -126,12 +139,13 @@ packages/
 │       ├── stats.ts   # 範囲集計
 │       ├── distribution.ts # 目標分布との比較、補充の集計
 │       ├── export.ts  # CSV / JSON の書き出し
+│       ├── life.ts    # 1 回ごとの生存と、範囲の生存時間の集計
 │       └── store.ts   # 組み立て済み実験のキャッシュ
 └── frontend/src/
     ├── main.ts        # 初期化、再生制御、イベント
     ├── api.ts         # API クライアント
     ├── state.ts       # 画面の状態
-    └── views/         # meta / map / players / charts / stats / dist / export
+    └── views/         # meta / map / players / charts / stats / life / dist / export
 ```
 
 ## ログの解釈

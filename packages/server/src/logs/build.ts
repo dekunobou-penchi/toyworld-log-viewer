@@ -12,6 +12,7 @@ import type {
 import type { RawExperiment } from './reader.js';
 import { computeView } from './view.js';
 import { buildDistribution, distributionReason, parseRefills } from './distribution.js';
+import { buildLives } from './life.js';
 
 export class LogFormatError extends Error {}
 
@@ -172,6 +173,6 @@ export function buildExperiment(raw: RawExperiment): Experiment {
     return {
         id: raw.id,
         title: meta?.experimentName ?? raw.id,
-        params, energy, fusion, T, nx, ny, blockMax, maps, players, refills, dist, distReason, notes,
+        params, energy, fusion, T, nx, ny, blockMax, maps, players, lives: buildLives(players, T), refills, dist, distReason, notes,
     };
 }

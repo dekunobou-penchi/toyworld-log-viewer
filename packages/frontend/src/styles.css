@@ -215,6 +215,9 @@ td.heat .sub { color: inherit; opacity: 0.7; }
 .pickbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: var(--ink2); }
 .pickbar .chip { color: var(--pc); font-weight: 700; }
 .pickbar input { width: 60px; }
+[data-life-mode][aria-pressed="true"] { box-shadow: var(--pressed); padding: 3px 9px 1px 11px; background: #e8e6e0; }
+#lifeCharts { display: flex; flex-direction: column; gap: 6px; }
+#lifeCharts svg { display: block; width: 100%; overflow: visible; user-select: none; }
 table.kv { width: auto; min-width: min(100%, 440px); }
 table.kv th { text-align: left; font-weight: 400; color: var(--ink); background: var(--head); box-shadow: none; border-bottom: 1px solid var(--line); }
 table.kv td { white-space: normal; }
