@@ -15,6 +15,7 @@ import {
     zoomReset,
 } from './views/charts.js';
 import { bindExportEvents, renderExportButtons } from './views/export.js';
+import { bindLifeEvents, renderLife } from './views/life.js';
 import { bindDistEvents, buildDist, renderDistNow, renderDistRange } from './views/dist.js';
 import { bindMapEvents, buildMap, renderMap } from './views/map.js';
 import { renderExperimentSelect, renderMeta, showError } from './views/meta.js';
@@ -113,6 +114,7 @@ async function loadStats(): Promise<void> {
     try {
         S.stats = await api.stats(E.id, Math.min(S.from, S.to), Math.max(S.from, S.to), ctrl.signal);
         renderStats();
+        renderLife();
         renderDistRange();
     } catch (e) {
         if ((e as Error).name !== 'AbortError') showError(`集計を取得できませんでした: ${(e as Error).message}`);
@@ -236,6 +238,7 @@ function bindEvents(): void {
     bindChartEvents();
     bindDistEvents();
     bindExportEvents();
+    bindLifeEvents();
 
     $('legend').addEventListener('click', (e) => {
         const b = (e.target as Element).closest<HTMLElement>('[data-p]');
@@ -311,6 +314,7 @@ function bindEvents(): void {
                 renderCursors();
                 renderDistNow();
                 renderDistRange();
+                renderLife();
             }
         }, 120);
     }).observe($('charts'));
@@ -361,6 +365,8 @@ function showTab(name: string): void {
     } else if (name === 'dist') {
         renderDistNow();
         renderDistRange();
+    } else if (name === 'stats') {
+        renderLife();
     }
 }
 

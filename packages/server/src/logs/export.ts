@@ -1,4 +1,4 @@
-import { ACTIONS, CONTEXTS, type Experiment, type StatsResponse } from '@viewer/shared';
+import { ACTIONS, CONTEXTS, LIFE_BINS, autoLifeBin, binLives, type Experiment, type StatsResponse } from '@viewer/shared';
 import { countIds } from './distribution.js';
 import { computeStats } from './stats.js';
 
@@ -8,7 +8,7 @@ import { computeStats } from './stats.js';
  * Excel で文字化けしないよう BOM 付き UTF-8、改行は CRLF（RFC 4180）。
  */
 
-export const EXPORT_KINDS = ['players', 'dist_series', 'summary', 'actions', 'context', 'dist_ids', 'refills', 'bundle'] as const;
+export const EXPORT_KINDS = ['players', 'dist_series', 'summary', 'actions', 'context', 'lives', 'life_hist', 'dist_ids', 'refills', 'bundle'] as const;
 export type ExportKind = (typeof EXPORT_KINDS)[number];
 
 type Cell = string | number | boolean | null | undefined;
@@ -20,6 +20,8 @@ export interface ExportRange {
     to: number;
     /** 目標分布の ID ごとの表で「選択中のティック」に使う（0 始まり） */
     t: number;
+    /** 生存時間のヒストグラムの棒の幅（0 = 自動） */
+    bin?: number;
 }
 
 export class ExportUnavailableError extends Error {}
@@ -138,6 +140,53 @@ function contextRows(exp: Experiment, st: StatsResponse): Row[] {
     return rows;
 }
 
+/** 1 回の生存を 1 行 */
+function lifeRows(exp: Experiment, st: StatsResponse): Row[] {
+    return st.life.records.map((r) => ({
+        player: nameOf(exp, r.uid),
+        uid: r.uid,
+        life: r.life,
+        start_tick: r.start + 1,
+        end_tick: r.end + 1,
+        length: r.length,
+        censored: r.censored,
+    }));
+}
+
+/** 実際に使う棒の幅（0 や不正な値は自動） */
+function lifeBinWidth(st: StatsResponse, bin: number | undefined): number {
+    return bin && (LIFE_BINS as readonly number[]).includes(bin) ? bin : autoLifeBin(st.life.maxLength);
+}
+
+/** 棒 × プレイヤー（死亡で終わった回のみ）。player = all は全員の合計 */
+function lifeHistRows(exp: Experiment, st: StatsResponse, width: number): Row[] {
+    const { nbins, counts } = binLives(st.life.records, width);
+    const rows: Row[] = [];
+    for (let i = 0; i < nbins; i++) {
+        let total = 0;
+        for (const P of exp.players) {
+            const n = counts.get(P.uid)?.[i] ?? 0;
+            total += n;
+            rows.push({ bin_start: i * width, bin_end: (i + 1) * width - 1, player: P.name, uid: P.uid, count: n });
+        }
+        rows.push({ bin_start: i * width, bin_end: (i + 1) * width - 1, player: 'all', uid: null, count: total });
+    }
+    return rows;
+}
+
+function lifeSummaryRows(exp: Experiment, st: StatsResponse): Row[] {
+    return [...st.life.summary, st.life.all].map((x) => ({
+        player: x.uid === 'all' ? 'all' : nameOf(exp, x.uid),
+        deaths: x.deaths,
+        censored: x.censored,
+        mean: x.mean,
+        median: x.median,
+        min: x.min,
+        max: x.max,
+        sd: x.sd,
+    }));
+}
+
 /** ID ごとの比較：目標、選択中ティックの個数、偶然の範囲、範囲内の補充回数と期待 */
 function distIdRows(exp: Experiment, st: StatsResponse, r: ExportRange): Row[] {
     const D = exp.dist;
@@ -217,7 +266,7 @@ export function exportData(exp: Experiment, kind: ExportKind, rIn: ExportRange):
     const clamp = (v: number) => Math.max(0, Math.min(exp.T - 1, Math.trunc(v)));
     const r: ExportRange = { from: clamp(Math.min(rIn.from, rIn.to)), to: clamp(Math.max(rIn.from, rIn.to)), t: clamp(rIn.t) };
     const base = `${exp.id}_tick${r.from + 1}-${r.to + 1}`;
-    const needsStats = kind === 'summary' || kind === 'actions' || kind === 'context' || kind === 'dist_ids' || kind === 'bundle';
+    const needsStats = kind !== 'players' && kind !== 'dist_series' && kind !== 'refills';
     const st = needsStats ? computeStats(exp, r.from, r.to) : null;
     const csv = (rows: Row[], name: string): ExportResult => ({ filename: `${base}_${name}.csv`, contentType: 'text/csv; charset=utf-8', body: toCsv(rows) });
 
@@ -232,6 +281,12 @@ export function exportData(exp: Experiment, kind: ExportKind, rIn: ExportRange):
             return csv(actionRows(exp, st!), 'actions');
         case 'context':
             return csv(contextRows(exp, st!), 'context');
+        case 'lives':
+            return csv(lifeRows(exp, st!), 'lives');
+        case 'life_hist': {
+            const w = lifeBinWidth(st!, rIn.bin);
+            return csv(lifeHistRows(exp, st!, w), `life_hist_bin${w}`);
+        }
         case 'dist_ids':
             return { ...csv(distIdRows(exp, st!, r), 'dist_ids'), filename: `${base}_dist_ids_at${r.t + 1}.csv` };
         case 'refills':
@@ -244,6 +299,9 @@ export function exportData(exp: Experiment, kind: ExportKind, rIn: ExportRange):
                 summary: summaryRows(exp, st!),
                 actions: actionRows(exp, st!),
                 context: contextRows(exp, st!),
+                lives: lifeRows(exp, st!),
+                life_summary: lifeSummaryRows(exp, st!),
+                life_hist: { bin_width: lifeBinWidth(st!, rIn.bin), rows: lifeHistRows(exp, st!, lifeBinWidth(st!, rIn.bin)) },
                 dist_ids: exp.dist ? distIdRows(exp, st!, r) : null,
                 refills: refillRows(exp, r),
                 refill_stats: { n: st!.refill.n, by_cause: st!.refill.byCause, same: st!.refill.same, other_changes: st!.refill.otherChanges, mean_l1: st!.refill.meanL1, max_l1: st!.refill.maxL1, over_chance: st!.refill.overChance },

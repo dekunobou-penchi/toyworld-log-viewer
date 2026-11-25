@@ -116,6 +116,28 @@
         <div class="tblwrap"><table id="tActions"></table></div>
         <h3>状況別の行動分布 <select id="ctxPlayer" aria-label="プレイヤー"></select></h3>
         <div class="tblwrap"><table id="tContext"></table></div>
+
+        <h3>生存時間の分布 <span class="muted">（範囲内に死亡した回。範囲 <span id="lifeRange" class="mono"></span> はツールバーの集計範囲）</span></h3>
+        <div class="pickbar" id="lifeBar">
+          <span>表示</span>
+          <span class="tb-group" role="group" aria-label="表示の仕方">
+            <button type="button" data-life-mode="stack" aria-pressed="true">まとめて</button>
+            <button type="button" data-life-mode="each" aria-pressed="false">エージェントごと</button>
+          </span>
+          <label for="lifeBin">棒の幅
+            <select id="lifeBin">
+              <option value="0">自動</option>
+              <option value="1">1</option><option value="2">2</option><option value="5">5</option><option value="10">10</option>
+              <option value="20">20</option><option value="50">50</option><option value="100">100</option>
+            </select> ティック
+          </label>
+          <span class="dlgroup" style="margin-left:auto">CSV
+            <button type="button" data-export="lives" data-what="1 回ごとの生存の一覧">生存の一覧</button>
+            <button type="button" data-export="life_hist" data-what="生存の長さのヒストグラム（今の棒の幅）">ヒストグラム</button>
+          </span>
+        </div>
+        <div id="lifeCharts"></div>
+        <div class="tblwrap"><table id="tLife"></table></div>
       </div>
         </div>
       </div>
@@ -173,6 +195,8 @@
         <dd>Ltime が 0 に戻ったティック。</dd>
         <dt>空振り / 有効率</dt>
         <dd>行動の前提条件（手ぶらで eat しない、正面が空きで get しない など）を満たしたかどうか。toyWorld の action.ts の分岐から判定。同じティックに他のプレイヤーが先に動いた場合はずれることがある。</dd>
+        <dt>生存時間</dt>
+        <dd>1 回の生存＝生き返ってから死ぬまで。長さは死ぬ直前の Ltime（「最長生存」と同じ数え方）。集計範囲の中に死亡した回を数え、長さは 1 回分の全体（範囲より前に生まれていても）。範囲の終わりでまだ生きている回は「打ち切り」として回数だけ数え、ヒストグラムには入れない。棒 1 本は長さ [i·w, (i+1)·w − 1]（w = 棒の幅）。</dd>
         <dt>獲得エネルギー</dt>
         <dd>有効な eat で消費したブロックの、エネルギー表の値の合計。</dd>
         <dt>目標分布との比較</dt>

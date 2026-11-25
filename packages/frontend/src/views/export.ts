@@ -4,6 +4,7 @@ import { ACTION_GROUPS } from '@viewer/shared';
 import { playerColor } from '../dom.js';
 import { showError } from './meta.js';
 import { PICK_COLORS, currentPicks } from './dist.js';
+import { lifeBinSetting, lifeLegendPlayers } from './life.js';
 
 /*
  * 書き出し。
@@ -56,7 +57,8 @@ function exportData(kind: string): void {
     const E = requireExp();
     const { from, to } = range();
     // ファイル名はサーバが Content-Disposition で付ける
-    download(`/api/experiments/${encodeURIComponent(E.id)}/export/${kind}?from=${from}&to=${to}&t=${S.t}`);
+    const bin = kind === 'life_hist' || kind === 'bundle' ? `&bin=${lifeBinSetting()}` : '';
+    download(`/api/experiments/${encodeURIComponent(E.id)}/export/${kind}?from=${from}&to=${to}&t=${S.t}${bin}`);
 }
 
 /* ---------------- グラフ画像 ---------------- */
@@ -76,6 +78,14 @@ function legendFor(name: string): LegendItem[] {
         E.players.filter((P) => all || !S.hidden.has(P.idx)).map((P): LegendItem => ({ color: playerColor(P.idx), label: P.name, mark: 'line' }));
     if (name === 'lp') return [...players(false), { color: 'var(--ink2)', label: '● 死亡', mark: 'faint' }];
     if (name === 'hold' || name === 'lt') return players(false);
+    const lifeIdx = lifeLegendPlayers(name);
+    if (lifeIdx) {
+        const { from, to } = range();
+        return [
+            ...lifeIdx.map((i): LegendItem => ({ color: playerColor(i), label: E.players[i]?.name ?? '', mark: 'box' })),
+            { color: 'var(--ink2)', label: `tick ${from + 1}–${to + 1} に死亡した回`, mark: 'faint' },
+        ];
+    }
     if (name === 'l1') {
         return [
             { color: 'var(--ink)', label: '目標とのズレ（L1）', mark: 'line' },

@@ -1,5 +1,6 @@
 import type { Action, Direction, GameParams, ViewCell } from './game.js';
 import type { ContextKey } from './constants.js';
+import type { LifeRecord, LifeStats } from './life.js';
 
 /** 実験一覧の1件（GET /api/experiments） */
 export interface ExperimentSummary {
@@ -103,6 +104,8 @@ export interface Experiment {
     /** maps[t][y][x] */
     maps: number[][][];
     players: PlayerSeries[];
+    /** 全期間の 1 回ごとの生存（最後の回は打ち切り） */
+    lives: LifeRecord[];
     /** events.jsonl の補充の記録（ファイルが無ければ空） */
     refills: RefillEvent[];
     /** 目標分布との比較（目標分布を使わない実験は null） */
@@ -184,6 +187,8 @@ export interface StatsResponse {
     actions: PlayerActionStats[];
     context: PlayerContextStats[];
     refill: RefillStats;
+    /** 生存時間の分布 */
+    life: LifeStats;
 }
 
 export interface ApiError {
