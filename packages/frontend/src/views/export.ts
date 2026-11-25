@@ -39,7 +39,11 @@ export function renderExportButtons(): void {
         const kind = b.dataset.export!;
         b.hidden = (DIST_KINDS.has(kind) && !E.dist) || (kind === 'refills' && E.refills.length === 0);
         const what = b.dataset.what ?? kind;
-        b.title = kind === 'dist_ids' ? `${what}：tick ${S.t + 1} の個数と、${label}の補充` : `${what}：${label}`;
+        const lifeLabel = `生存時間の範囲（tick ${Math.min(S.lifeFrom, S.lifeTo) + 1}–${Math.max(S.lifeFrom, S.lifeTo) + 1}）`;
+        b.title =
+            kind === 'dist_ids' ? `${what}：tick ${S.t + 1} の個数と、${label}の補充`
+            : kind === 'lives' || kind === 'life_hist' ? `${what}：${lifeLabel}`
+            : `${what}：${label}`;
     }
     for (const el of document.querySelectorAll<HTMLElement>('.dlrange')) el.textContent = `tick ${from + 1}–${to + 1}`;
 }
@@ -57,8 +61,13 @@ function exportData(kind: string): void {
     const E = requireExp();
     const { from, to } = range();
     // ファイル名はサーバが Content-Disposition で付ける
+    const lf = Math.min(S.lifeFrom, S.lifeTo), lt = Math.max(S.lifeFrom, S.lifeTo);
     const bin = kind === 'life_hist' || kind === 'bundle' ? `&bin=${lifeBinSetting()}` : '';
-    download(`/api/experiments/${encodeURIComponent(E.id)}/export/${kind}?from=${from}&to=${to}&t=${S.t}${bin}`);
+    // 生存時間は自分の範囲で書き出す（まとめての JSON には両方の範囲を渡す）
+    const isLife = kind === 'lives' || kind === 'life_hist';
+    const rng = isLife ? `from=${lf}&to=${lt}` : `from=${from}&to=${to}`;
+    const extra = kind === 'bundle' ? `&lfrom=${lf}&lto=${lt}` : '';
+    download(`/api/experiments/${encodeURIComponent(E.id)}/export/${kind}?${rng}&t=${S.t}${bin}${extra}`);
 }
 
 /* ---------------- グラフ画像 ---------------- */
@@ -80,7 +89,7 @@ function legendFor(name: string): LegendItem[] {
     if (name === 'hold' || name === 'lt') return players(false);
     const lifeIdx = lifeLegendPlayers(name);
     if (lifeIdx) {
-        const { from, to } = range();
+        const from = Math.min(S.lifeFrom, S.lifeTo), to = Math.max(S.lifeFrom, S.lifeTo);
         return [
             ...lifeIdx.map((i): LegendItem => ({ color: playerColor(i), label: E.players[i]?.name ?? '', mark: 'box' })),
             { color: 'var(--ink2)', label: `tick ${from + 1}–${to + 1} に死亡した回`, mark: 'faint' },

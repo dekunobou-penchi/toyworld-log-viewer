@@ -1,12 +1,13 @@
 import { LIFE_BINS, autoLifeBin, binLives, type LifeSummary } from '@viewer/shared';
+import { api } from '../api.js';
 import { $, esc, fmt, niceTicks, playerColor } from '../dom.js';
 import { S, requireExp } from '../state.js';
 import { hideTip, showTip } from '../tooltip.js';
-import { imgButtons } from './export.js';
+import { imgButtons, renderExportButtons } from './export.js';
 
 /*
- * 生存時間の分布（集計タブ）。範囲はツールバーの集計範囲。
- * 値はサーバの StatsResponse.life。棒への振り分けは shared の binLives（書き出しと同じ区切り）。
+ * 生存時間の分布（集計タブ）。範囲はこの欄だけのもの（S.lifeFrom–S.lifeTo、ツールバーの集計範囲とは別）。
+ * 値はサーバの /api/experiments/:id/life。棒への振り分けは shared の binLives（書き出しと同じ区切り）。
  */
 
 type Mode = 'stack' | 'each';
@@ -52,7 +53,7 @@ function safe(name: string): string {
 
 /** 今の表示のための棒の幅と、プレイヤーごとの回数 */
 function current() {
-    const st = S.stats!.life;
+    const st = S.life!;
     const w = binSetting && (LIFE_BINS as readonly number[]).includes(binSetting) ? binSetting : autoLifeBin(st.maxLength);
     return { st, w, ...binLives(st.records, w) };
 }
@@ -102,10 +103,12 @@ function summaryText(x: LifeSummary | undefined): string {
 /** 集計（S.stats）が届いたとき・設定を変えたとき・幅が変わったときに呼ぶ */
 export function renderLife(): void {
     const E = requireExp();
-    if (!S.stats || $('secStats').hidden) return;
+    renderLifeInputs();
+    renderExportButtons();
+    if (!S.life || $('secStats').hidden) return;
     const { st, w, nbins, counts } = current();
-    const from = Math.min(S.from, S.to) + 1, to = Math.max(S.from, S.to) + 1;
-    $('lifeRange').textContent = `tick ${from}–${to}`;
+    const same = S.life.from === Math.min(S.from, S.to) && S.life.to === Math.max(S.from, S.to);
+    $('lifeRange').textContent = same ? '（集計範囲と同じ）' : '';
     for (const b of document.querySelectorAll<HTMLButtonElement>('[data-life-mode]')) b.setAttribute('aria-pressed', String(b.dataset.lifeMode === mode));
     const sel = $<HTMLSelectElement>('lifeBin');
     sel.options[0].textContent = `自動（${autoLifeBin(st.maxLength)}）`;
@@ -156,7 +159,62 @@ export function renderLife(): void {
         '</tbody>';
 }
 
+function renderLifeInputs(): void {
+    $<HTMLInputElement>('lifeFrom').value = String(Math.min(S.lifeFrom, S.lifeTo) + 1);
+    $<HTMLInputElement>('lifeTo').value = String(Math.max(S.lifeFrom, S.lifeTo) + 1);
+}
+
+/** 実験を開いたとき。同じ実験の読み直しなら範囲を引き継ぐ（終わりまでを見ていたら追記分まで広げる） */
+export function resetLifeRange(keep: boolean, prevT: number): void {
+    const E = requireExp();
+    if (!keep) {
+        S.lifeFrom = 0;
+        S.lifeTo = E.T - 1;
+    } else {
+        const atEnd = Math.max(S.lifeFrom, S.lifeTo) >= prevT - 1;
+        S.lifeFrom = Math.min(S.lifeFrom, E.T - 1);
+        S.lifeTo = atEnd ? E.T - 1 : Math.min(S.lifeTo, E.T - 1);
+    }
+    const max = String(E.T);
+    $<HTMLInputElement>('lifeFrom').max = max;
+    $<HTMLInputElement>('lifeTo').max = max;
+}
+
+let lifeAbort: AbortController | null = null;
+/** 生存時間の範囲が変わったら呼ぶ */
+export async function loadLife(): Promise<void> {
+    const E = requireExp();
+    lifeAbort?.abort();
+    const ctrl = new AbortController();
+    lifeAbort = ctrl;
+    renderLifeInputs();
+    $('lifeCharts').classList.add('loading');
+    try {
+        S.life = await api.life(E.id, Math.min(S.lifeFrom, S.lifeTo), Math.max(S.lifeFrom, S.lifeTo), ctrl.signal);
+        renderLife();
+    } catch (e) {
+        if ((e as Error).name !== 'AbortError') $('lifeCharts').innerHTML = `<div class="notes-box err">生存時間を取得できませんでした: ${esc((e as Error).message)}</div>`;
+    } finally {
+        if (lifeAbort === ctrl) $('lifeCharts').classList.remove('loading');
+    }
+}
+
+function setLifeRange(from: number, to: number): void {
+    const T = requireExp().T;
+    const c = (v: number) => Math.max(0, Math.min(T - 1, v));
+    S.lifeFrom = c(Math.min(from, to));
+    S.lifeTo = c(Math.max(from, to));
+    void loadLife();
+}
+
 export function bindLifeEvents(): void {
+    const tickInput = (id: string) => (parseInt($<HTMLInputElement>(id).value, 10) || 1) - 1;
+    $('lifeFrom').addEventListener('change', () => S.exp && setLifeRange(tickInput('lifeFrom'), Math.max(S.lifeFrom, S.lifeTo)));
+    $('lifeTo').addEventListener('change', () => S.exp && setLifeRange(Math.min(S.lifeFrom, S.lifeTo), tickInput('lifeTo')));
+    $('lifeAll').addEventListener('click', () => S.exp && setLifeRange(0, S.exp.T - 1));
+    $('lifeUpTo').addEventListener('click', () => S.exp && setLifeRange(0, S.t));
+    $('lifeSync').addEventListener('click', () => S.exp && setLifeRange(S.from, S.to));
+
     $('lifeBar').addEventListener('click', (e) => {
         const b = (e.target as Element).closest<HTMLElement>('[data-life-mode]');
         if (!b) return;
@@ -194,7 +252,7 @@ export function bindLifeEvents(): void {
         clearTimeout(timer);
         timer = window.setTimeout(() => {
             const w = $('lifeCharts').clientWidth;
-            if (w > 0 && Math.abs(w - lastW) > 4 && S.exp && S.stats) {
+            if (w > 0 && Math.abs(w - lastW) > 4 && S.exp && S.life) {
                 lastW = w;
                 renderLife();
             }

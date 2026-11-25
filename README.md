@@ -75,19 +75,19 @@ LP・保持ブロック・Ltime の3つのグラフと行動タイムライン�
 | 集計 › プレイヤー | `…_summary.csv` | プレイヤー（死亡・最長生存・平均 LP・有効な eat・空振り率など） |
 | 集計 › 行動 | `…_actions.csv` | プレイヤー × 行動（回数・割合・有効率） |
 | 集計 › 状況別 | `…_context.csv` | プレイヤー × 状況 × 行動（回数・割合） |
-| 集計 › 生存の一覧 | `…_lives.csv` | 1 回の生存（何回目か・開始と終了のティック・長さ・打ち切りか） |
-| 集計 › ヒストグラム | `…_life_hist_bin{幅}.csv` | 棒 × プレイヤー（長さの区間・回数。`player = all` は全員の合計）。棒の幅は画面の設定 |
+| 集計 › 生存の一覧（生存時間の範囲） | `…_lives.csv` | 1 回の生存（何回目か・開始と終了のティック・長さ・打ち切りか） |
+| 集計 › ヒストグラム（生存時間の範囲） | `…_life_hist_bin{幅}.csv` | 棒 × プレイヤー（長さの区間・回数。`player = all` は全員の合計）。棒の幅は画面の設定 |
 | 目標分布 › ID ごと | `…_dist_ids_at{tick}.csv` | ブロック ID（目標・偶然の範囲・選択中ティックの個数・補充回数と期待） |
 | 目標分布 › 補充イベント | `…_refills.csv` | 補充 1 回（ティック・場所・取られた ID・補充された ID・原因・プレイヤー） |
 
-API からも取れる：`GET /api/experiments/:id/export/:kind?from=&to=&t=`（`kind` は `players` / `dist_series` / `summary` / `actions` / `context` / `lives` / `life_hist` / `dist_ids` / `refills` / `bundle`、`from` / `to` / `t` は 0 始まり、`life_hist` の棒の幅は `bin`（1 / 2 / 5 / 10 / 20 / 50 / 100、0 か省略で自動））。
+API からも取れる：`GET /api/experiments/:id/export/:kind?from=&to=&t=`（`kind` は `players` / `dist_series` / `summary` / `actions` / `context` / `lives` / `life_hist` / `dist_ids` / `refills` / `bundle`、`from` / `to` / `t` は 0 始まり、`bundle` の生存時間の範囲は `lfrom` / `lto`（省略なら集計範囲と同じ）、`life_hist` の棒の幅は `bin`（1 / 2 / 5 / 10 / 20 / 50 / 100、0 か省略で自動））。
 
 ### 生存時間の分布
 
 集計タブの一番下に、1 回の生存（生き返ってから死ぬまで）の長さのヒストグラムと集計表を出す。
 
 - 長さは死ぬ直前の Ltime（集計の「最長生存」と同じ数え方）
-- 範囲はツールバーの集計範囲。範囲の中に死亡した回を数え、長さは 1 回分の全体（範囲より前に生まれていても）
+- 範囲はこの欄だけのもので、ツールバーの集計範囲とは別に指定する（最初は全期間。「集計範囲に合わせる」でツールバーと同じにできる）。範囲の中に死亡した回を数え、長さは 1 回分の全体（範囲より前に生まれていても）
 - 範囲の終わりでまだ生きている回は「打ち切り」として回数だけ数え、ヒストグラムには入れない
 - 表示は「まとめて」（プレイヤーごとに積み上げ）と「エージェントごと」（1 人 1 枚、縦軸・横軸をそろえる）を切り替えられる
 - 棒の幅は自動（棒が 30 本前後になる切りのいい幅）か 1 / 2 / 5 / 10 / 20 / 50 / 100 ティック。棒 1 本は長さ [i·w, (i+1)·w − 1]
@@ -114,6 +114,7 @@ refill（無ければ initMap）のルールが目標分布（`target`）を使�
 |---|---|---|
 | GET | `/api/experiments` | 実験の一覧（`ExperimentListResponse`） |
 | GET | `/api/experiments/:id` | 組み立て済みの実験（`Experiment`）。全ティックのマップとプレイヤー系列、補充の記録、目標分布との比較（`dist`） |
+| GET | `/api/experiments/:id/life?from=&to=` | 任意の範囲の生存時間の分布（`LifeResponse`） |
 | GET | `/api/experiments/:id/export/:kind?from=&to=&t=` | CSV / JSON の書き出し（上の「書き出し」） |
 | GET | `/api/experiments/:id/stats?from=&to=` | ティック範囲の集計（`StatsResponse`）。`from`/`to` は 0 始まり、両端含む。補充と分布の集計は `refill` |
 

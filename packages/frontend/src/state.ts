@@ -1,4 +1,4 @@
-import type { Experiment, ExperimentSummary, StatsResponse } from '@viewer/shared';
+import type { Experiment, ExperimentSummary, LifeResponse, StatsResponse } from '@viewer/shared';
 
 export interface ViewerState {
     list: ExperimentSummary[];
@@ -18,6 +18,10 @@ export interface ViewerState {
     stats: StatsResponse | null;
     /** 時系列の表示範囲（ティック、0 始まり、小数可）。a < b */
     win: { a: number; b: number };
+    /** 生存時間の分布の範囲（集計範囲とは別。0 始まり、両端含む） */
+    lifeFrom: number;
+    lifeTo: number;
+    life: LifeResponse | null;
 }
 
 export const S: ViewerState = {
@@ -32,6 +36,9 @@ export const S: ViewerState = {
     to: 0,
     stats: null,
     win: { a: 0, b: 1 },
+    lifeFrom: 0,
+    lifeTo: 0,
+    life: null,
 };
 
 export function requireExp(): Experiment {
